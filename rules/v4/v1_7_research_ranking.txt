@@ -1,0 +1,13 @@
+# v1.7 Editorial Addendum｜RESEARCH_RANKING
+
+既存v4の調査品質、史実/伝説/俗説の分離、最後に「何位を使いますか？」で停止するルールを維持する。
+
+各ランキング候補へ次の編集評価を追加する：
+- surprise_delta：日本人の予想との落差
+- one_sentence_test：一文で面白さが伝わるか
+- causal_story：なぜ→行動→結果があるか
+- visual_match：今回映像で話を支えられるか
+- talkability：見終わった人が人に話したくなるか
+- evidence_strength：史実/伝説等を安全に区分できるか
+
+これらはランキングの説明材料であり、AIが採用順位を決める権限ではない。採用は必ずユーザーが決める。
