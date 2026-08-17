@@ -5,14 +5,14 @@ from pathlib import Path
 from typing import Any
 
 STEP_RULES={
-    "VIDEO_ANALYSIS":["01_popular_shorts.txt","02_video_analysis.txt"],
-    "RESEARCH_RANKING":["01_popular_shorts.txt","03_research_ranking.txt"],
-    "SELECTION_CONFIRM":["04_selection.txt"],
-    "SCRIPT_DRAFT":["05_script_draft.txt"],
-    "TIPS":["06_tips.txt"],
-    "CTA_A":["07A_cta.txt"],
-    "CTA_B":["07B_cta.txt"],
-    "SCRIPT_FINAL":["08_script_final.txt"],
+    "VIDEO_ANALYSIS":["01_popular_shorts.txt","02_video_analysis.txt","v1_7_video_analysis.txt"],
+    "RESEARCH_RANKING":["01_popular_shorts.txt","03_research_ranking.txt","v1_7_research_ranking.txt"],
+    "SELECTION_CONFIRM":["04_selection.txt","v1_7_selection_greenlight.txt"],
+    "SCRIPT_DRAFT":["05_script_draft.txt","v1_7_script_editorial.txt"],
+    "TIPS":["06_tips.txt","v1_7_script_editorial.txt"],
+    "CTA_A":["07A_cta.txt","v1_7_script_editorial.txt"],
+    "CTA_B":["07B_cta.txt","v1_7_script_editorial.txt"],
+    "SCRIPT_FINAL":["08_script_final.txt","v1_7_script_editorial.txt"],
     "PRODUCTION":["09_production.txt"],
     "PUBLISHING_A":["10A_publishing.txt"],
     "PUBLISHING_B":["10B_publishing.txt"],
