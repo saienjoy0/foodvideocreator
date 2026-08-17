@@ -3,9 +3,11 @@ from foodvideocreator.rules import load_rule_bundle
 
 def test_step_rules_are_loaded_in_full():
     b=load_rule_bundle("rules/v4","VIDEO_ANALYSIS")
-    assert len(b["files"])==2
+    names={p.split('/')[-1] for p in b["files"]}
+    assert {"01_popular_shorts.txt","02_video_analysis.txt","v1_7_video_analysis.txt"}.issubset(names)
     assert "工程2：動画理解・分析" in b["text"]
     assert "工程1：人気グルメShorts固定原則" in b["text"]
+    assert "v1.7 Editorial Addendum" in b["text"]
     assert len(b["sha256"])==64
 
 
