@@ -4,11 +4,13 @@ import re
 from typing import Any
 
 APPROVE_WORDS={"ok","オッケー","次へ","それでいい","採用"}
+EDITORIAL_OVERRIDE_WORDS={"それでも進めて","企画続行","この企画で続行","弱くても進めて"}
 
 
 def parse_command(text:str)->dict[str,Any]:
     t=text.strip()
     if t.lower()=="ok" or t in APPROVE_WORDS: return {"intent":"APPROVE"}
+    if t in EDITORIAL_OVERRIDE_WORDS: return {"intent":"EDITORIAL_OVERRIDE"}
     if t in {"お願い","開始"}: return {"intent":"START_OR_NEXT"}
     if t=="A": return {"intent":"ROUTE","route":"A"}
     if t=="B": return {"intent":"ROUTE","route":"B"}
