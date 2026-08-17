@@ -33,7 +33,7 @@ GATE_SLOT = {
 }
 
 CHECK_SLOT_BINDINGS = {
-    "CHECK_DISH_IDENTITY":"ANALYSIS", "CHECK_CLAIM_EVIDENCE":"CLAIMS", "CHECK_THUMBNAIL_COPY_FACTS":"THUMBNAIL_COPY",
+    "CHECK_DISH_IDENTITY":"ANALYSIS", "CHECK_ATTENTION_SEGMENTS":"ANALYSIS", "CHECK_CLAIM_EVIDENCE":"CLAIMS", "CHECK_THUMBNAIL_COPY_FACTS":"THUMBNAIL_COPY",
     "CHECK_SOURCE_PREPROCESS":"ANALYSIS", "CHECK_SUBTITLE_TIMING":"ALIGNMENT", "CHECK_SUBTITLE_DESIGN_PREVIEW":"SCRIPT_FINAL", "CHECK_ACTUAL_VOICE_DURATION":"SCRIPT_FINAL",
 }
 
@@ -98,7 +98,7 @@ class PipelineApp:
             if not requested.exists() or sha256_file(requested)!=main["sha256"]: raise RuntimeError("VIDEO_ANALYSIS_MUST_USE_MAIN_SOURCE")
             result=run_video_analysis(self.con,project_id=self.project_id,source_path=main["path"],artifact_root=self.artifact_root,provider=self.ai,dish_name=kwargs.get("dish_name"),rule_bundle=rule_bundle)
         elif step_name=="RESEARCH_RANKING": result=run_research_ranking(self.con,project_id=self.project_id,artifact_root=self.artifact_root,provider=self.ai,rule_bundle=rule_bundle)
-        elif step_name=="SELECTION_CONFIRM": result=create_selection_confirm(self.con,project_id=self.project_id,ranks=kwargs["ranks"],artifact_root=self.artifact_root,video_seconds=float(kwargs.get("video_seconds",self._video_seconds())))
+        elif step_name=="SELECTION_CONFIRM": result=create_selection_confirm(self.con,project_id=self.project_id,ranks=kwargs["ranks"],artifact_root=self.artifact_root,video_seconds=float(kwargs.get("video_seconds",self._video_seconds())),provider=self.ai,editorial_override=bool(kwargs.get("editorial_override",False)),rule_bundle=rule_bundle)
         elif step_name=="SCRIPT_DRAFT": result=run_script_draft(self.con,project_id=self.project_id,artifact_root=self.artifact_root,provider=self.ai,video_seconds=float(kwargs.get("video_seconds",self._video_seconds())),density_override=bool(kwargs.get("density_override",False)),rule_bundle=rule_bundle)
         elif step_name=="TIPS": result=run_tips(self.con,project_id=self.project_id,artifact_root=self.artifact_root,provider=self.ai,video_seconds=float(kwargs.get("video_seconds",self._video_seconds())),density_override=bool(kwargs.get("density_override",False)),rule_bundle=rule_bundle)
         elif step_name=="ROUTE_SELECTION":
@@ -146,8 +146,9 @@ class PipelineApp:
         basis=list(data.get("identity_basis",[])); basis.append("user_confirmation"); data["identity_basis"]=basis
         art=write_json_artifact(self.con,project_id=self.project_id,artifact_type="ANALYSIS",data=data,artifact_root=self.artifact_root,slot="ANALYSIS",filename="analysis.json",dependencies=[(old["artifact_id"],old["sha256"])])
         record_check(self.con,self.project_id,"CHECK_DISH_IDENTITY",artifact_id=art["artifact_id"],artifact_sha256=art["sha256"],measurement={"confidence":1.0,"identity_conflict":False,"user_confirmed":True},result="PASS")
-        prev=self.con.execute("SELECT result,measurement_json FROM checks WHERE project_id=? AND check_type='CHECK_VIDEO_ANALYSIS_COMPLETE' AND artifact_id=? ORDER BY check_id DESC LIMIT 1",(self.project_id,old["artifact_id"])).fetchone()
-        if prev: record_check(self.con,self.project_id,"CHECK_VIDEO_ANALYSIS_COMPLETE",artifact_id=art["artifact_id"],artifact_sha256=art["sha256"],measurement=json.loads(prev["measurement_json"]),result=prev["result"])
+        for check_type in ("CHECK_ATTENTION_SEGMENTS","CHECK_VIDEO_ANALYSIS_COMPLETE"):
+            prev=self.con.execute("SELECT result,measurement_json FROM checks WHERE project_id=? AND check_type=? AND artifact_id=? ORDER BY check_id DESC LIMIT 1",(self.project_id,check_type,old["artifact_id"])).fetchone()
+            if prev: record_check(self.con,self.project_id,check_type,artifact_id=art["artifact_id"],artifact_sha256=art["sha256"],measurement=json.loads(prev["measurement_json"]),result=prev["result"])
         gate=self._open_step_gate("VIDEO_ANALYSIS"); return {"artifact":art,"gate":gate}
 
     def _resolve_audio_policy_if_possible(self) -> str | None:
@@ -184,6 +185,10 @@ class PipelineApp:
             if not row: raise RuntimeError("NO_OPEN_GATE")
             source_step=self._step_for_gate_stage(row["stage"]); decision=self.approve_open_gate(decision="APPROVE")
             return {"command":cmd,"decision":decision,"next":self._execute_next_after(source_step,**kwargs)}
+        if intent=="EDITORIAL_OVERRIDE":
+            ranks=get_directive(self.con,self.project_id,"RANK_SELECTION")
+            if not ranks: raise RuntimeError("RANK_SELECTION_REQUIRED_FOR_EDITORIAL_OVERRIDE")
+            return {"command":cmd,"next":self.execute("SELECTION_CONFIRM",ranks=list(ranks),editorial_override=True,**kwargs)}
         if intent=="RANK_SELECTION": return {"command":cmd,"next":self.execute("SELECTION_CONFIRM",ranks=cmd["ranks"],**kwargs)}
         if intent=="ROUTE":
             self.execute("ROUTE_SELECTION",route=cmd["route"]); return {"command":cmd,"next":self.execute("CTA",cta_none=bool(cmd.get("cta_none")),**kwargs)}
