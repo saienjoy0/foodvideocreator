@@ -1,0 +1,33 @@
+# v1.7 Editorial Addendum｜SCRIPT_DRAFT / TIPS / SCRIPT_FINAL
+
+## Canonical boundary
+Analysis.attention_segments が segment_id / start_sec / end_sec / mode の正本。Script側は時間窓やmodeを再定義・短縮して密度下限を下げてはいけない。
+返す文章は canonical segment_id ごとの segment_texts とする。
+VISUAL_ONLY / ASMR_ONLY の segment_text は原則空文字。
+
+## SCRIPT_DRAFT / phase=draft
+全文を書く前に Hook Package を6〜10案比較する。
+Hook Packageは文章単体ではなく0〜3秒の映像＋字幕＋音の契約。
+各候補は hook_id / visual_start_sec / visual_end_sec / visual_scene_ids / subtitle_text / spoken_text / audio_strategy / no_text / promise / payoff_claim_ids / critics を持つ。
+no_text=true を正式候補として許可する。
+criticsは viewer / shorts_editor / fact / procedure の全てpass=trueが必要。Fact Fail候補は選ばない。
+selected_hook_idで勝者1案を指定する。
+
+Hookの短い字幕/VOICEは0〜3秒のHook契約として別枠。VISUAL_ONLY区間へ通常ナレーションを入れる根拠にはしない。
+
+## Segment-aware density
+従来の動画全尺×8〜9ではなく、NARRATION_REQUIRED区間秒数の合計だけを分母にする。
+下限=ceil(narration_required_seconds×8.0)
+上限=floor(narration_required_seconds×9.0)
+同義反復・意味のない接続語で水増し禁止。採用順位外の情報追加禁止。
+VISUAL_ONLY/ASMR_ONLYを密度のためにNARRATION_REQUIREDへ変更禁止。
+
+## TIPS / phase=tips
+承認済みHook Packageを変更しない。Analysisのcanonical segment_idを維持した segment_texts を返す。
+1文字でも変更したらSegment-aware densityを再検証できる構造を維持する。
+VISUAL_ONLY/ASMR_ONLYへTipsを足す必要が生じた場合、勝手にmode変更せず上流Analysis修正が必要と扱う。
+
+## SCRIPT_FINAL
+表示本文は選択済みHookのsubtitle_text（no_text=falseの場合）＋NARRATION_REQUIRED segment_textsから構成する。
+生成音声本文は Hook.audio_strategy=VOICE のspoken_textだけを冒頭に含め、それ以外のHook音声は追加しない。その後NARRATION_REQUIRED segment_textsを連結する。
+最終Lock前も同じSegment-aware densityでPASS必須。
