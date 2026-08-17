@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "foodvideocreator"
+version = "1.6.2"
+description = "Human-gated workflow engine for gourmet YouTube Shorts"
+requires-python = ">=3.11"
+dependencies = [
+  "PyYAML>=6",
+  "Pillow>=10",
+  "fonttools>=4.50",
+]
+
+[project.scripts]
+fvc = "foodvideocreator.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["foodvideocreator*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

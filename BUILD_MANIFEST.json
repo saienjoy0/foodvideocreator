@@ -1,0 +1,25 @@
+{
+  "name": "foodvideocreator",
+  "version": "1.6.2",
+  "design": "v1.6.2 Final MVP Contract",
+  "workflow_steps": 17,
+  "rule_file_count": 19,
+  "test_count": 53,
+  "latest_local_test_result": "53 passed in 32.96s",
+  "private_runtime_assets": {
+    "fixed_bgm.MP3": {
+      "committed": false,
+      "reason": "user-supplied production media is not published in the public repository",
+      "expected_sha256": "0c6625282b69f829b057086e8e37b8baa3f77e7b3b094e372dac89ac78abcdf8"
+    },
+    "asmr bgm.MP3": {
+      "committed": false,
+      "reason": "not supplied"
+    }
+  },
+  "external_providers": {
+    "production_ai_provider": "Command adapter required for live AI; Mock is test-only",
+    "production_tts_provider": "Command adapter required for live TTS; Mock is test-only",
+    "production_image_provider": "Command adapter required for live Mode B image generation; Mock is test-only"
+  }
+}

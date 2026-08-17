@@ -1,0 +1,24 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: System dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-cjk
+      - name: Install
+        run: python -m pip install -e . pytest
+      - name: Startup validation
+        run: |
+          fvc validate
+          fvc validate --step THUMBNAIL_TEXT
+      - name: Tests
+        run: pytest -q
