@@ -1,0 +1,20 @@
+# v1.7 Editorial Addendum｜SELECTION_CONFIRM / Greenlight
+
+ユーザー指定順位だけをロックする。未指定順位追加禁止。
+
+phase=greenlight では、必ず次を返す：
+- core_promise：この動画を見ると何が分かるかを予備知識0の日本人向けに1文で
+- core_promise_claim_ids：core_promiseを支える採用済みClaim IDのみ
+- editorial_greenlight.q1/q2/q3
+
+Hard Gate：
+Q1. 一文で聞いて「え？」が起きるか
+Q2. その約束を今回の映像で見せられるか
+Q3. 答えの後に「へぇ」が残るか
+
+各qは answer:boolean / reason:string / evidence_ids:list を必須とする。
+Q1/Q3のevidenceは採用済みClaim、Q2はAnalysisのscene_id等、承認済み入力だけを使う。
+YES×3=GREENLIGHT、NO×1=REWORK、NO×2以上=KILL_RECOMMEND。
+数値スコアでHard Gateを上書きしてはいけない。
+普通のOKはoverrideではない。明示的に「それでも進めて」「企画続行」等が入力された場合だけ上位システムがoverrideを記録する。
+字幕全文はこのphaseで作らない。
