@@ -1,0 +1,14 @@
+# v1.7 Editorial Addendum｜VIDEO_ANALYSIS
+
+既存v4の全確認項目を維持する。追加で、全編を連続する attention_segments に分解して返す。
+
+各区間の mode は必ず次のいずれか：
+- NARRATION_REQUIRED：説明がないと価値・意味が伝わらない
+- VISUAL_ONLY：映像だけを見せた方が価値が高い
+- ASMR_ONLY：調理音・食感音を聞かせる方が価値が高い
+
+各区間は segment_id / start_sec / end_sec / mode / reason / evidence_scene_ids を持つ。
+major_scenes の各sceneには scene_id を付ける。attention_segments は0秒から動画末尾まで隙間なく覆い、重複させない。
+VISUAL_ONLY/ASMR_ONLYは実映像・実音声上の根拠がある場合のみ設定する。
+動画全体を一語でVISUAL/ASMR等に分類して字幕密度を緩和してはいけない。
+Script側が区間時間やmodeを変更する前提で返してはいけない。Analysisのattention_segmentsが正本。
