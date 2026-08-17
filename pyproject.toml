@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "foodvideocreator"
-version = "1.6.2"
+version = "1.7.0"
 description = "Human-gated workflow engine for gourmet YouTube Shorts"
 requires-python = ">=3.11"
 dependencies = [
