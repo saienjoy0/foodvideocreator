@@ -21,14 +21,14 @@ jobs:
         id: parts
         shell: bash
         run: |
-          count=$(find assets/fixed_bgm.parts -maxdepth 1 -name 'part_*.bin' 2>/dev/null | wc -l | tr -d ' ')
+          count=$(find assets/fixed_bgm.parts -maxdepth 1 -name 'part_*.b64' 2>/dev/null | wc -l | tr -d ' ')
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "Found $count parts"
       - name: Reconstruct and verify MP3
         if: steps.parts.outputs.count == '11'
         shell: bash
         run: |
-          cat $(find assets/fixed_bgm.parts -maxdepth 1 -name 'part_*.bin' | sort) > assets/fixed_bgm.MP3
+          cat $(find assets/fixed_bgm.parts -maxdepth 1 -name 'part_*.b64' | sort) | base64 --decode > assets/fixed_bgm.MP3
           echo '0c6625282b69f829b057086e8e37b8baa3f77e7b3b094e372dac89ac78abcdf8  assets/fixed_bgm.MP3' | sha256sum -c -
           test -s assets/fixed_bgm.MP3
       - name: Commit production BGM
