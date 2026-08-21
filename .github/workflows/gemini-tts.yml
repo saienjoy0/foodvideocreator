@@ -1,4 +1,4 @@
-name: Gemini TTS
+name: Gemini Voice Direct
 
 on:
   push:
@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: gemini-tts-${{ github.ref }}
+  group: gemini-voice-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -36,8 +36,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Gemini provider
-        run: python -m pip install -e '.[gemini]'
+      - name: Install Gemini SDK only
+        run: python -m pip install 'google-genai>=1.0.0'
 
       - name: Resolve request
         id: request
@@ -73,7 +73,7 @@ jobs:
             exit 2
           fi
 
-      - name: Generate voice
+      - name: Generate voice directly
         run: python scripts/run_voice_request.py '${{ steps.request.outputs.request }}'
 
       - name: Upload voice artifact
@@ -104,6 +104,7 @@ jobs:
               'workflow_run_id': int(os.environ['RUN_ID']),
               'artifact_name': f'gemini-voice-{stem}',
               'source_commit_sha': os.environ['COMMIT_SHA'],
+              'mode': 'direct_voice_only',
           }
           Path(f'voice_results/{stem}.json').write_text(
               json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
