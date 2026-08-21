@@ -13,6 +13,11 @@ dependencies = [
   "fonttools>=4.50",
 ]
 
+[project.optional-dependencies]
+gemini = [
+  "google-genai>=1.0.0",
+]
+
 [project.scripts]
 fvc = "foodvideocreator.cli:main"
 
