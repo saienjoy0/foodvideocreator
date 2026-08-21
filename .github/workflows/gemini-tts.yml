@@ -1,0 +1,118 @@
+name: Gemini TTS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'voice_requests/*.json'
+  workflow_dispatch:
+    inputs:
+      request_file:
+        description: 'voice_requests/<name>.json'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gemini-tts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TTS_MODEL: gemini-2.5-flash-preview-tts
+      GEMINI_TTS_VOICE: Kore
+      INPUT_REQUEST_FILE: ${{ inputs.request_file }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Gemini provider
+        run: python -m pip install -e '.[gemini]'
+
+      - name: Resolve request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            REQUEST="$INPUT_REQUEST_FILE"
+          else
+            REQUEST="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- 'voice_requests/*.json' | head -n 1)"
+          fi
+          if [[ -z "$REQUEST" || ! -f "$REQUEST" ]]; then
+            echo "No voice request JSON found" >&2
+            exit 2
+          fi
+          case "$REQUEST" in
+            voice_requests/*.json) ;;
+            *) echo "Invalid request path: $REQUEST" >&2; exit 2 ;;
+          esac
+          STEM="$(basename "$REQUEST" .json)"
+          if [[ ! "$STEM" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            echo "Invalid request filename" >&2
+            exit 2
+          fi
+          echo "request=$REQUEST" >> "$GITHUB_OUTPUT"
+          echo "stem=$STEM" >> "$GITHUB_OUTPUT"
+
+      - name: Check secret
+        shell: bash
+        run: |
+          if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+            echo "Repository secret GEMINI_API_KEY is missing" >&2
+            exit 2
+          fi
+
+      - name: Generate voice
+        run: python scripts/run_voice_request.py '${{ steps.request.outputs.request }}'
+
+      - name: Upload voice artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-voice-${{ steps.request.outputs.stem }}
+          path: voice_outputs/${{ steps.request.outputs.stem }}/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish result pointer
+        env:
+          STEM: ${{ steps.request.outputs.stem }}
+          REQUEST: ${{ steps.request.outputs.request }}
+          RUN_ID: ${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p voice_results
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          stem = os.environ['STEM']
+          payload = {
+              'status': 'completed',
+              'request_file': os.environ['REQUEST'],
+              'workflow_run_id': int(os.environ['RUN_ID']),
+              'artifact_name': f'gemini-voice-{stem}',
+              'source_commit_sha': os.environ['COMMIT_SHA'],
+          }
+          Path(f'voice_results/{stem}.json').write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "voice_results/${STEM}.json"
+          git commit -m "voice result: ${STEM} [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
