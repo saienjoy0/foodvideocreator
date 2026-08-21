@@ -1,0 +1,7 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/smoke_20260821.json",
+  "workflow_run_id": 32446124545,
+  "artifact_name": "gemini-voice-smoke_20260821",
+  "source_commit_sha": "8a06e7e0ee761c841b92e20378394985a3ca886b"
+}
