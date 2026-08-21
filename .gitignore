@@ -9,6 +9,7 @@ dist/
 job.db
 jobs/
 artifacts/
+voice_outputs/
 *.sqlite
 *.sqlite3
 .env
