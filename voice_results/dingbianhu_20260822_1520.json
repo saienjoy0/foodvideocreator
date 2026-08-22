@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/dingbianhu_20260822_1520.json",
+  "workflow_run_id": 32556751175,
+  "artifact_name": "gemini-voice-dingbianhu_20260822_1520",
+  "source_commit_sha": "a7197a9c402cdcf82731f0ee4d45d43100c8f943",
+  "mode": "direct_voice_only"
+}
