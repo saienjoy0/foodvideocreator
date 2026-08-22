@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/guangbing_20260822_1523.json",
+  "workflow_run_id": 32556867349,
+  "artifact_name": "gemini-voice-guangbing_20260822_1523",
+  "source_commit_sha": "93da7f9c333bc9f2c82f6446aaeb1725b1e9c373",
+  "mode": "direct_voice_only"
+}
