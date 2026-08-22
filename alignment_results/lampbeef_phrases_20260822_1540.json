@@ -1,0 +1,125 @@
+{
+  "audio_verified": true,
+  "segments": [
+    {
+      "index": 1,
+      "text": "向こう側が透けるほど薄い、この牛肉。",
+      "matched": true,
+      "heard": "向こう側が透けるほど薄い、この牛肉。",
+      "start": 0.0,
+      "end": 2.25
+    },
+    {
+      "index": 2,
+      "text": "名前は「灯影牛肉」。",
+      "matched": false,
+      "heard": "名前は東海牛肉。",
+      "start": 2.6,
+      "end": 4.0
+    },
+    {
+      "index": 3,
+      "text": "伝説では、唐の時代の詩人・元稹が",
+      "matched": false,
+      "heard": "伝説では、唐の時代の詩人・門人が",
+      "start": 4.9,
+      "end": 7.2
+    },
+    {
+      "index": 4,
+      "text": "薄い牛肉を灯りにかざす。",
+      "matched": true,
+      "heard": "薄い牛肉を灯りにかざす。",
+      "start": 7.4,
+      "end": 9.4
+    },
+    {
+      "index": 5,
+      "text": "すると肉の模様が壁に映り、",
+      "matched": true,
+      "heard": "すると肉の模様が壁に映り、",
+      "start": 9.7,
+      "end": 11.8
+    },
+    {
+      "index": 6,
+      "text": "当時の影絵「灯影戯」のように見え、",
+      "matched": false,
+      "heard": "当時の影絵東海牛のように見え、",
+      "start": 12.0,
+      "end": 14.4
+    },
+    {
+      "index": 7,
+      "text": "ここから名前が生まれた。",
+      "matched": true,
+      "heard": "ここから名前が生まれた。",
+      "start": 14.5,
+      "end": 15.9
+    },
+    {
+      "index": 8,
+      "text": "昔の五香牛肉は厚くて硬く、",
+      "matched": true,
+      "heard": "昔の五香牛肉は厚くて硬く、",
+      "start": 16.5,
+      "end": 19.0
+    },
+    {
+      "index": 9,
+      "text": "なかなか売れない。",
+      "matched": true,
+      "heard": "なかなか売れない。",
+      "start": 19.1,
+      "end": 20.0
+    },
+    {
+      "index": 10,
+      "text": "そこで牛肉を極薄の一枚に改良すると、",
+      "matched": true,
+      "heard": "そこで牛肉を極薄の一枚に改良すると、",
+      "start": 20.5,
+      "end": 23.0
+    },
+    {
+      "index": 11,
+      "text": "一気に評判を呼び、達州を代表する名物へ。",
+      "matched": true,
+      "heard": "一気に評判を呼び、達州を代表する名物へ。",
+      "start": 23.1,
+      "end": 26.2
+    },
+    {
+      "index": 12,
+      "text": "客を呼ぶため、",
+      "matched": true,
+      "heard": "客を呼ぶため、",
+      "start": 27.0,
+      "end": 27.9
+    },
+    {
+      "index": 13,
+      "text": "牛肉の後ろには油灯を置いた。",
+      "matched": true,
+      "heard": "牛肉の後ろには油灯を置いた。",
+      "start": 28.0,
+      "end": 30.0
+    },
+    {
+      "index": 14,
+      "text": "灯りを通して赤く透ける牛肉が人目を引き、",
+      "matched": true,
+      "heard": "灯りを通して赤く透ける牛肉が人目を引き、",
+      "start": 30.7,
+      "end": 33.4
+    },
+    {
+      "index": 15,
+      "text": "「灯影牛肉」と呼ばれるようになる。",
+      "matched": false,
+      "heard": "東海牛と呼ばれるようになる。",
+      "start": 33.5,
+      "end": 35.0
+    }
+  ]
+}
