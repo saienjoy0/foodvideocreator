@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/matsukeigyo_20260822_1507.json",
+  "workflow_run_id": 32556182614,
+  "artifact_name": "gemini-voice-matsukeigyo_20260822_1507",
+  "source_commit_sha": "d432cfebb56c5c163edd8167385dbe595441b7f1",
+  "mode": "direct_voice_only"
+}
