@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/chouguiyu_20260822.json",
+  "workflow_run_id": 32557050559,
+  "artifact_name": "gemini-voice-chouguiyu_20260822",
+  "source_commit_sha": "001e04ced689df56467c09864dc2b883a8a97d56",
+  "mode": "direct_voice_only"
+}
