@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/maodoufu_20260822_1709.json",
+  "workflow_run_id": 32561577155,
+  "artifact_name": "gemini-voice-maodoufu_20260822_1709",
+  "source_commit_sha": "a218b0313c0260f8786a9f2a5b1bb08100e4452b",
+  "mode": "direct_voice_only"
+}
