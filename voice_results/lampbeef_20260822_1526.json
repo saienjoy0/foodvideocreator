@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/lampbeef_20260822_1526.json",
+  "workflow_run_id": 32557020158,
+  "artifact_name": "gemini-voice-lampbeef_20260822_1526",
+  "source_commit_sha": "713ad426040b52737f0abf111e2b5e1db2094016",
+  "mode": "direct_voice_only"
+}
