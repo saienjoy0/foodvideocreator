@@ -1,0 +1,66 @@
+name: Gemini Voice Alignment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'alignment_requests/*.json'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai>=1.0.0'
+      - name: Resolve request
+        id: req
+        shell: bash
+        run: |
+          set -euo pipefail
+          REQUEST="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- 'alignment_requests/*.json' | head -n 1)"
+          test -n "$REQUEST" && test -f "$REQUEST"
+          STEM="$(basename "$REQUEST" .json)"
+          echo "request=$REQUEST" >> "$GITHUB_OUTPUT"
+          echo "stem=$STEM" >> "$GITHUB_OUTPUT"
+      - name: Download voice artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' > /tmp/vars
+          import json
+          r=json.load(open('${{ steps.req.outputs.request }}',encoding='utf-8'))
+          print('RUN_ID='+str(r['voice_run_id']))
+          print('ARTIFACT='+r['artifact_name'])
+          PY
+          source /tmp/vars
+          mkdir -p downloaded
+          gh run download "$RUN_ID" -n "$ARTIFACT" -D downloaded
+          test -f downloaded/voice.wav
+      - name: Align actual speech
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p alignment_results
+          python scripts/gemini_align_voice.py '${{ steps.req.outputs.request }}' downloaded/voice.wav > 'alignment_results/${{ steps.req.outputs.stem }}.json'
+      - name: Publish alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'alignment_results/${{ steps.req.outputs.stem }}.json'
+          git commit -m 'alignment result: ${{ steps.req.outputs.stem }} [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
