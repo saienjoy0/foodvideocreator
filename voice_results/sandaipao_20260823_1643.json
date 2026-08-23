@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/sandaipao_20260823_1643.json",
+  "workflow_run_id": 32626366877,
+  "artifact_name": "gemini-voice-sandaipao_20260823_1643",
+  "source_commit_sha": "a89a93f8a0723172777efff697343aa5b021fff9",
+  "mode": "direct_voice_only"
+}
