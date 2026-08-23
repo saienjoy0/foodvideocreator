@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/liyubeimian_20260823_1603.json",
+  "workflow_run_id": 32624562170,
+  "artifact_name": "gemini-voice-liyubeimian_20260823_1603",
+  "source_commit_sha": "589a88393792dc3babfb519802df75599c54dacb",
+  "mode": "direct_voice_only"
+}
