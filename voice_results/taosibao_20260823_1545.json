@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/taosibao_20260823_1545.json",
+  "workflow_run_id": 32623814787,
+  "artifact_name": "gemini-voice-taosibao_20260823_1545",
+  "source_commit_sha": "85b16a46dcc8881752ec817055657615216b4249",
+  "mode": "direct_voice_only"
+}
