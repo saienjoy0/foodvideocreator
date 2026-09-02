@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/biangbiang_20260902_hotblooded.json",
+  "workflow_run_id": 33608553594,
+  "artifact_name": "gemini-voice-biangbiang_20260902_hotblooded",
+  "source_commit_sha": "507b1b62a75958944bdc4396cc6990fcaa2513d8",
+  "mode": "direct_voice_only"
+}
