@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/coffin_bread_20260902_hotblooded.json",
+  "workflow_run_id": 33609317681,
+  "artifact_name": "gemini-voice-coffin_bread_20260902_hotblooded",
+  "source_commit_sha": "524f0b743efb0c04965cafc819b660f19143fdce",
+  "mode": "direct_voice_only"
+}
