@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/meatyan_20260902_hotblood.json",
+  "workflow_run_id": 33607923937,
+  "artifact_name": "gemini-voice-meatyan_20260902_hotblood",
+  "source_commit_sha": "2cb6bfc4175099ebb0417d44e42eb1ec5ffedbec",
+  "mode": "direct_voice_only"
+}
