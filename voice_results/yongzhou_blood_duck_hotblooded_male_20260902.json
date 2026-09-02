@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/yongzhou_blood_duck_hotblooded_male_20260902.json",
+  "workflow_run_id": 33608465221,
+  "artifact_name": "gemini-voice-yongzhou_blood_duck_hotblooded_male_20260902",
+  "source_commit_sha": "5dc1aa68bfa05d3728858369c82f7f96e83ceac6",
+  "mode": "direct_voice_only"
+}
