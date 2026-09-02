@@ -1,0 +1,197 @@
+{
+  "audio_verified": true,
+  "segments": [
+    {
+      "index": 1,
+      "text": "これ、麺の幅じゃないだろ。",
+      "matched": true,
+      "heard": "これ、麺の幅じゃないだろ。",
+      "start": 0.0,
+      "end": 1.7
+    },
+    {
+      "index": 2,
+      "text": "ベルトみたいに幅広い中国の手打ち麺",
+      "matched": true,
+      "heard": "ベルトみたいに幅広い中国の手打ち麺",
+      "start": 1.7,
+      "end": 5.3
+    },
+    {
+      "index": 3,
+      "text": "しかも変なのは見た目だけじゃない。",
+      "matched": true,
+      "heard": "しかも変なのは見た目だけじゃない。",
+      "start": 5.6,
+      "end": 7.6
+    },
+    {
+      "index": 4,
+      "text": "名前まで作る時の音から付いた",
+      "matched": true,
+      "heard": "名前まで作る時の音から付いた",
+      "start": 7.7,
+      "end": 9.9
+    },
+    {
+      "index": 5,
+      "text": "生地を両手で伸ばし、",
+      "matched": true,
+      "heard": "生地を両手で伸ばし",
+      "start": 10.5,
+      "end": 11.7
+    },
+    {
+      "index": 6,
+      "text": "台へバン！バン！と叩きつける",
+      "matched": true,
+      "heard": "台へバンバンと叩きつける",
+      "start": 11.7,
+      "end": 13.8
+    },
+    {
+      "index": 7,
+      "text": "伸ばすたび、",
+      "matched": true,
+      "heard": "伸ばすたび",
+      "start": 14.2,
+      "end": 14.8
+    },
+    {
+      "index": 8,
+      "text": "生地が台へ当たって大きな音が響く",
+      "matched": true,
+      "heard": "生地が台へ当たって大きな音が響く",
+      "start": 14.8,
+      "end": 17.0
+    },
+    {
+      "index": 9,
+      "text": "そのバン！バン！のような音が、",
+      "matched": true,
+      "heard": "そのバンバンのような音が",
+      "start": 17.5,
+      "end": 19.3
+    },
+    {
+      "index": 10,
+      "text": "そのままビャンビャン面という",
+      "matched": true,
+      "heard": "そのままビャンビャン麺という",
+      "start": 19.3,
+      "end": 20.8
+    },
+    {
+      "index": 11,
+      "text": "名前になったと言われている",
+      "matched": true,
+      "heard": "名前になったと言われている",
+      "start": 20.8,
+      "end": 22.0
+    },
+    {
+      "index": 12,
+      "text": "さらに何度も休ませながら伸ばすと、",
+      "matched": true,
+      "heard": "さらに何度も休ませながら伸ばすと",
+      "start": 22.5,
+      "end": 24.6
+    },
+    {
+      "index": 13,
+      "text": "1本が約1.5メートルになることもある",
+      "matched": true,
+      "heard": "1本が約1.5メートルになることもある",
+      "start": 24.6,
+      "end": 27.0
+    },
+    {
+      "index": 14,
+      "text": "幅も指3本以上になるほど広く、",
+      "matched": true,
+      "heard": "幅も指3本以上になるほど広く",
+      "start": 27.4,
+      "end": 29.8
+    },
+    {
+      "index": 15,
+      "text": "普通の麺とは別物",
+      "matched": true,
+      "heard": "普通の麺とは別物",
+      "start": 30.2,
+      "end": 31.5
+    },
+    {
+      "index": 16,
+      "text": "持ち上げると一本の麺というより、",
+      "matched": true,
+      "heard": "持ち上げると一本の麺というより",
+      "start": 31.8,
+      "end": 33.7
+    },
+    {
+      "index": 17,
+      "text": "本当に長い帯みたい",
+      "matched": true,
+      "heard": "本当に長い帯みたい",
+      "start": 33.9,
+      "end": 35.2
+    },
+    {
+      "index": 18,
+      "text": "一般的には、",
+      "matched": true,
+      "heard": "一般的には",
+      "start": 35.8,
+      "end": 36.7
+    },
+    {
+      "index": 19,
+      "text": "やわらかさとしっかりしたコシを",
+      "matched": false,
+      "heard": "やわらかさとしっかりとしたコシを",
+      "start": 36.7,
+      "end": 38.7
+    },
+    {
+      "index": 20,
+      "text": "併せ持つのが特徴",
+      "matched": true,
+      "heard": "合わせ持つのが特徴",
+      "start": 38.7,
+      "end": 39.9
+    },
+    {
+      "index": 21,
+      "text": "一本が長くて幅も広いから、",
+      "matched": true,
+      "heard": "一本が長くて幅も広いから",
+      "start": 40.3,
+      "end": 42.0
+    },
+    {
+      "index": 22,
+      "text": "見た目の存在感もかなり大きい",
+      "matched": true,
+      "heard": "見た目の存在感もかなり大きい",
+      "start": 42.0,
+      "end": 43.6
+    },
+    {
+      "index": 23,
+      "text": "音も長さも見た目も食感まで全部、",
+      "matched": true,
+      "heard": "音も長さも見た目も食感まで全部",
+      "start": 44.2,
+      "end": 46.7
+    },
+    {
+      "index": 24,
+      "text": "普通の麺とはかなり違う",
+      "matched": true,
+      "heard": "普通の麺とはかなり違う",
+      "start": 46.7,
+      "end": 48.2
+    }
+  ]
+}
