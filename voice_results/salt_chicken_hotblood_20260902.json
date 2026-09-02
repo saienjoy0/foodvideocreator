@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/salt_chicken_hotblood_20260902.json",
+  "workflow_run_id": 33608093380,
+  "artifact_name": "gemini-voice-salt_chicken_hotblood_20260902",
+  "source_commit_sha": "b454db247437aee8e7e2f8f41e860110c7b5dd9e",
+  "mode": "direct_voice_only"
+}
