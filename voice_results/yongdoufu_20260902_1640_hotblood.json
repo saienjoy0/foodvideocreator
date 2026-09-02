@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/yongdoufu_20260902_1640_hotblood.json",
+  "workflow_run_id": 33606377681,
+  "artifact_name": "gemini-voice-yongdoufu_20260902_1640_hotblood",
+  "source_commit_sha": "1a85fa4c45053d68ea37696caea21d97af3eda5d",
+  "mode": "direct_voice_only"
+}
