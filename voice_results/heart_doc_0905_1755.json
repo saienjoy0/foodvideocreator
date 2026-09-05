@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/heart_doc_0905_1755.json",
+  "workflow_run_id": 33956825520,
+  "artifact_name": "gemini-voice-heart_doc_0905_1755",
+  "source_commit_sha": "03ed8e09735d2ca1864adb528410010f76cc18ab",
+  "mode": "direct_voice_only"
+}
