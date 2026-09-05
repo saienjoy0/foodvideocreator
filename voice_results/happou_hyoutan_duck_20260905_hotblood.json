@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/happou_hyoutan_duck_20260905_hotblood.json",
+  "workflow_run_id": 33955855910,
+  "artifact_name": "gemini-voice-happou_hyoutan_duck_20260905_hotblood",
+  "source_commit_sha": "bb1a81193168c950ad443f9672255376b0fef4a5",
+  "mode": "direct_voice_only"
+}
