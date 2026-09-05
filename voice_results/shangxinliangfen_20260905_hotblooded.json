@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/shangxinliangfen_20260905_hotblooded.json",
+  "workflow_run_id": 33954905809,
+  "artifact_name": "gemini-voice-shangxinliangfen_20260905_hotblooded",
+  "source_commit_sha": "2e748582b2a8c8faf34b6bd7f68c3754f7c02111",
+  "mode": "direct_voice_only"
+}
