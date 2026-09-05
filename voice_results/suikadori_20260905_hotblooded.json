@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/suikadori_20260905_hotblooded.json",
+  "workflow_run_id": 33952459646,
+  "artifact_name": "gemini-voice-suikadori_20260905_hotblooded",
+  "source_commit_sha": "5f5cf4fa4b2de8a9869f26823ede2ac9ca9e24e4",
+  "mode": "direct_voice_only"
+}
