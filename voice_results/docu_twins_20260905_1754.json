@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/docu_twins_20260905_1754.json",
+  "workflow_run_id": 33956594044,
+  "artifact_name": "gemini-voice-docu_twins_20260905_1754",
+  "source_commit_sha": "c6c2dabde14bef2de21c3942ab655894b17cce80",
+  "mode": "direct_voice_only"
+}
