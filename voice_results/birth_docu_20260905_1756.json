@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/birth_docu_20260905_1756.json",
+  "workflow_run_id": 33957248383,
+  "artifact_name": "gemini-voice-birth_docu_20260905_1756",
+  "source_commit_sha": "4fff520134d4c3cf854f0e4a27ad7b66f0f3adf8",
+  "mode": "direct_voice_only"
+}
