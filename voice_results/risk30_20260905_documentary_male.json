@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/risk30_20260905_documentary_male.json",
+  "workflow_run_id": 33955685771,
+  "artifact_name": "gemini-voice-risk30_20260905_documentary_male",
+  "source_commit_sha": "6fd22d89e66fc3ac26d466255d2a5cb15cb4fb92",
+  "mode": "direct_voice_only"
+}
