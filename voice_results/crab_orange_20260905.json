@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/crab_orange_20260905.json",
+  "workflow_run_id": 33952793186,
+  "artifact_name": "gemini-voice-crab_orange_20260905",
+  "source_commit_sha": "dc9a472597bd47a3b9c694d62195a25864ee4271",
+  "mode": "direct_voice_only"
+}
