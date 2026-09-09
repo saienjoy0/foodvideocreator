@@ -1,0 +1,86 @@
+name: Gemini YouTube Research
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research_requests/amazon_area_manager_*.json'
+  workflow_dispatch:
+    inputs:
+      request_file:
+        description: 'research_requests/<name>.json'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gemini-youtube-research-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_RESEARCH_MODEL: gemini-2.5-flash
+      INPUT_REQUEST_FILE: ${{ inputs.request_file }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Resolve request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            REQUEST="$INPUT_REQUEST_FILE"
+          else
+            REQUEST="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- 'research_requests/amazon_area_manager_*.json' | head -n 1)"
+          fi
+          if [[ -z "$REQUEST" || ! -f "$REQUEST" ]]; then
+            echo "No research request JSON found" >&2
+            exit 2
+          fi
+          case "$REQUEST" in
+            research_requests/amazon_area_manager_*.json) ;;
+            *) echo "Invalid request path: $REQUEST" >&2; exit 2 ;;
+          esac
+          STEM="$(basename "$REQUEST" .json)"
+          echo "request=$REQUEST" >> "$GITHUB_OUTPUT"
+          echo "stem=$STEM" >> "$GITHUB_OUTPUT"
+
+      - name: Check Gemini secret
+        shell: bash
+        run: |
+          if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+            echo "Repository secret GEMINI_API_KEY is missing" >&2
+            exit 2
+          fi
+
+      - name: Analyze YouTube videos with Gemini
+        run: python scripts/run_youtube_research.py '${{ steps.request.outputs.request }}'
+
+      - name: Upload research artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-youtube-research-${{ steps.request.outputs.stem }}
+          path: research_results/${{ steps.request.outputs.stem }}/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit research results
+        env:
+          STEM: ${{ steps.request.outputs.stem }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "research_results/${STEM}/"
+          git commit -m "research result: ${STEM} [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
