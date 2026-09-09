@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/wangyoujuan_20260909_1328.json",
+  "workflow_run_id": 34314319033,
+  "artifact_name": "gemini-voice-wangyoujuan_20260909_1328",
+  "source_commit_sha": "78f5d59a13aa7509a3c30ecfe9cf881d1945b493",
+  "mode": "direct_voice_only"
+}
