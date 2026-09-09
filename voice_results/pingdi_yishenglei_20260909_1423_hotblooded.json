@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/pingdi_yishenglei_20260909_1423_hotblooded.json",
+  "workflow_run_id": 34316502242,
+  "artifact_name": "gemini-voice-pingdi_yishenglei_20260909_1423_hotblooded",
+  "source_commit_sha": "ae879a0f7124742f75455bdd3ec14a0b5b9f05f0",
+  "mode": "direct_voice_only"
+}
