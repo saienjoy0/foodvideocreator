@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/fish_disguise_20260909_1405.json",
+  "workflow_run_id": 34315330182,
+  "artifact_name": "gemini-voice-fish_disguise_20260909_1405",
+  "source_commit_sha": "963dbf82818c9ef5ea4ed148bccac785be46c987",
+  "mode": "direct_voice_only"
+}
