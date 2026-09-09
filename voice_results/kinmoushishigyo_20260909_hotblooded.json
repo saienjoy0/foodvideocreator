@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/kinmoushishigyo_20260909_hotblooded.json",
+  "workflow_run_id": 34313930527,
+  "artifact_name": "gemini-voice-kinmoushishigyo_20260909_hotblooded",
+  "source_commit_sha": "bfdeeba7840696668e9e7aed903cf6826a72fa32",
+  "mode": "direct_voice_only"
+}
