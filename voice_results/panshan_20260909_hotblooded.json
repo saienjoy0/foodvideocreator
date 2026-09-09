@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/panshan_20260909_hotblooded.json",
+  "workflow_run_id": 34314234742,
+  "artifact_name": "gemini-voice-panshan_20260909_hotblooded",
+  "source_commit_sha": "61e064c5998b8393e5aed6a872d2ce72c6272684",
+  "mode": "direct_voice_only"
+}
