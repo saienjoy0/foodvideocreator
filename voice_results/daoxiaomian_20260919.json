@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/daoxiaomian_20260919.json",
+  "workflow_run_id": 35415917017,
+  "artifact_name": "gemini-voice-daoxiaomian_20260919",
+  "source_commit_sha": "0ef9b7b13b9a9706f44327e4c804742d19735d26",
+  "mode": "direct_voice_only"
+}
