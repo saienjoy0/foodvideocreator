@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/tanggua_20260919_1114.json",
+  "workflow_run_id": 35416484502,
+  "artifact_name": "gemini-voice-tanggua_20260919_1114",
+  "source_commit_sha": "c60a598d05548e16242fb16b7dec55481f3d1acc",
+  "mode": "direct_voice_only"
+}
