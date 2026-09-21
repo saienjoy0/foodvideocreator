@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/heqing_chuigan_20260921_hotblooded.json",
+  "workflow_run_id": 35612351851,
+  "artifact_name": "gemini-voice-heqing_chuigan_20260921_hotblooded",
+  "source_commit_sha": "dbd816917d693f8c87e1ed3789cdac6e3133e1e2",
+  "mode": "direct_voice_only"
+}
