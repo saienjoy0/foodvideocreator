@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/madoufu_20260921_2324_hotblooded.json",
+  "workflow_run_id": 35612607705,
+  "artifact_name": "gemini-voice-madoufu_20260921_2324_hotblooded",
+  "source_commit_sha": "aaaef5746567db2d83a7490d627a9059689c99aa",
+  "mode": "direct_voice_only"
+}
