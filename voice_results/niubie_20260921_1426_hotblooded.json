@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/niubie_20260921_1426_hotblooded.json",
+  "workflow_run_id": 35565460171,
+  "artifact_name": "gemini-voice-niubie_20260921_1426_hotblooded",
+  "source_commit_sha": "97bfab3fb639d0addb10026783668ce3fd7d81fa",
+  "mode": "direct_voice_only"
+}
