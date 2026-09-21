@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/hele_20260921_retry_hotblooded.json",
+  "workflow_run_id": 35566032187,
+  "artifact_name": "gemini-voice-hele_20260921_retry_hotblooded",
+  "source_commit_sha": "35ad9fd67081992e4620557ec97f5bd6342af157",
+  "mode": "direct_voice_only"
+}
