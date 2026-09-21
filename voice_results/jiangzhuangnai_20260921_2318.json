@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/jiangzhuangnai_20260921_2318.json",
+  "workflow_run_id": 35611422209,
+  "artifact_name": "gemini-voice-jiangzhuangnai_20260921_2318",
+  "source_commit_sha": "1a7a34d3f40633fb4a448cdacd7e2e04b6f139f8",
+  "mode": "direct_voice_only"
+}
