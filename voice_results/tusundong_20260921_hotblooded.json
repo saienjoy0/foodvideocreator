@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/tusundong_20260921_hotblooded.json",
+  "workflow_run_id": 35565850407,
+  "artifact_name": "gemini-voice-tusundong_20260921_hotblooded",
+  "source_commit_sha": "b5d9096b172c8b4f6f79f99f55b17424e7c930b5",
+  "mode": "direct_voice_only"
+}
