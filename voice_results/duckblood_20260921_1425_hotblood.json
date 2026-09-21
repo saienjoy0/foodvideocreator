@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/duckblood_20260921_1425_hotblood.json",
+  "workflow_run_id": 35565274792,
+  "artifact_name": "gemini-voice-duckblood_20260921_1425_hotblood",
+  "source_commit_sha": "a7fdcb5aea7932cdd12b8860d4dd3e023378c3df",
+  "mode": "direct_voice_only"
+}
