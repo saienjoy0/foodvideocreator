@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/mendingroubing_hotblood_20260921.json",
+  "workflow_run_id": 35612290500,
+  "artifact_name": "gemini-voice-mendingroubing_hotblood_20260921",
+  "source_commit_sha": "5afb802a670d2cdb29459992433ab69183fa067f",
+  "mode": "direct_voice_only"
+}
