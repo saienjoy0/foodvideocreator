@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/jiangzhuangnai_20260921_2205_hotblooded.json",
+  "workflow_run_id": 35606095688,
+  "artifact_name": "gemini-voice-jiangzhuangnai_20260921_2205_hotblooded",
+  "source_commit_sha": "648bd552c2342dbebcb3ffe91403f7bc3652136f",
+  "mode": "direct_voice_only"
+}
