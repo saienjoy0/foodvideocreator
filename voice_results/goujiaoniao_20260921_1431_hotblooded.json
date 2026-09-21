@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/goujiaoniao_20260921_1431_hotblooded.json",
+  "workflow_run_id": 35565809921,
+  "artifact_name": "gemini-voice-goujiaoniao_20260921_1431_hotblooded",
+  "source_commit_sha": "faed0e2f8eb568003597a88d1fb3453c43d257cf",
+  "mode": "direct_voice_only"
+}
