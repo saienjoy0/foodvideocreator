@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/qinzhen_liangpi_20260921_hotblood.json",
+  "workflow_run_id": 35565561250,
+  "artifact_name": "gemini-voice-qinzhen_liangpi_20260921_hotblood",
+  "source_commit_sha": "a54b5893ce68de9e0c56433f7c1686636f0fa6dd",
+  "mode": "direct_voice_only"
+}
