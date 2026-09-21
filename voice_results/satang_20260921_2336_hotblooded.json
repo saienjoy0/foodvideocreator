@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/satang_20260921_2336_hotblooded.json",
+  "workflow_run_id": 35614956063,
+  "artifact_name": "gemini-voice-satang_20260921_2336_hotblooded",
+  "source_commit_sha": "31470e027d6e51291923e3958e305335492dc6e8",
+  "mode": "direct_voice_only"
+}
