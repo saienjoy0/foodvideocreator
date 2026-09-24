@@ -10,7 +10,8 @@ import wave
 from pathlib import Path
 from typing import Any
 
-DEFAULT_MODEL = "gemini-2.5-flash-preview-tts"
+DEFAULT_MODEL = "gemini-3.8-flash-tts"
+CURRENT_TTS_MODELS = {"gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"}
 DEFAULT_VOICE = "Kore"
 DEFAULT_STYLE = (
     "自然な日本語のYouTube Shortsナレーション。テンポはやや速め、"
@@ -110,28 +111,47 @@ def main() -> None:
     except Exception:
         _fail("google-genai is not installed; install with: pip install -e '.[gemini]'")
 
-    prompt = (
-        f"{style}\n\n"
-        "次の本文だけを、文字を足したり省いたりせず、日本語として自然に読み上げてください。\n"
-        "--- 読み上げ本文 ---\n"
-        f"{text}"
-    )
-
     try:
         client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=["AUDIO"],
-                speech_config=types.SpeechConfig(
-                    voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
-                    )
+        if model in CURRENT_TTS_MODELS:
+            # Gemini 3.8 reads text verbatim; delivery belongs in speech_metadata.
+            interaction = client.interactions.create(
+                model=model,
+                input=[{
+                    "type": "user_input",
+                    "content": [{
+                        "type": "text",
+                        "text": text,
+                        "annotations": [{"type": "speech_metadata", "style": style}],
+                    }],
+                }],
+                response_format={"type": "audio"},
+                generation_config={"speech_config": [{"voice": voice}]},
+            )
+            data = interaction.output_audio.data
+            audio = base64.b64decode(data) if isinstance(data, str) else bytes(data)
+            mime_type = "audio/wav"
+        else:
+            # Preserve the legacy request format for older, explicitly pinned jobs.
+            prompt = (
+                f"{style}\n\n"
+                "次の本文だけを、文字を足したり省いたりせず、日本語として自然に読み上げてください。\n"
+                "--- 読み上げ本文 ---\n"
+                f"{text}"
+            )
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
+                        )
+                    ),
                 ),
-            ),
-        )
-        audio, mime_type = _audio_from_response(response)
+            )
+            audio, mime_type = _audio_from_response(response)
         duration, sample_rate = _write_wav(output_path, audio, mime_type)
     except Exception as exc:
         _fail(f"Gemini TTS generation failed: {type(exc).__name__}: {exc}", 1)

@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GEMINI_TTS_MODEL: gemini-2.5-flash-preview-tts
+      GEMINI_TTS_MODEL: gemini-3.8-flash-tts
       GEMINI_TTS_VOICE: Kore
       INPUT_REQUEST_FILE: ${{ inputs.request_file }}
     steps:
@@ -37,7 +37,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Gemini SDK only
-        run: python -m pip install 'google-genai>=1.0.0'
+        run: python -m pip install 'google-genai>=2.25.0'
 
       - name: Resolve request
         id: request
