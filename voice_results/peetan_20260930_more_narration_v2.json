@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/peetan_20260930_more_narration_v2.json",
+  "workflow_run_id": 36594565779,
+  "artifact_name": "gemini-voice-peetan_20260930_more_narration_v2",
+  "source_commit_sha": "e2656c3deba11024072b6866e7c6a2639bfeebaf",
+  "mode": "direct_voice_only"
+}
