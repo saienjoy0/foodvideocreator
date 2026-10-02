@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/mukade_egg_20261003_hotblood.json",
+  "workflow_run_id": 37038615427,
+  "artifact_name": "gemini-voice-mukade_egg_20261003_hotblood",
+  "source_commit_sha": "408c7b52be8f48df3f461668a2f7d67b97a6a87c",
+  "mode": "direct_voice_only"
+}
