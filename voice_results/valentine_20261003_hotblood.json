@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/valentine_20261003_hotblood.json",
+  "workflow_run_id": 37042111110,
+  "artifact_name": "gemini-voice-valentine_20261003_hotblood",
+  "source_commit_sha": "fe662c7fc6f70c2b9cfc96659dbdff26d3cc6c8a",
+  "mode": "direct_voice_only"
+}
