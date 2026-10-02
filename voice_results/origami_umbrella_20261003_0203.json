@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/origami_umbrella_20261003_0203.json",
+  "workflow_run_id": 37038525442,
+  "artifact_name": "gemini-voice-origami_umbrella_20261003_0203",
+  "source_commit_sha": "14cd558170af62b383ec531e545c0ca4127aef1a",
+  "mode": "direct_voice_only"
+}
