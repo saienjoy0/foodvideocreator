@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/suzan_20261003_0210_hotblooded.json",
+  "workflow_run_id": 37040062287,
+  "artifact_name": "gemini-voice-suzan_20261003_0210_hotblooded",
+  "source_commit_sha": "fcfeff538eacf072a3cf1a37562037b329a19152",
+  "mode": "direct_voice_only"
+}
