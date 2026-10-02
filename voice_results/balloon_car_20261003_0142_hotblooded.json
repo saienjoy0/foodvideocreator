@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/balloon_car_20261003_0142_hotblooded.json",
+  "workflow_run_id": 37038502638,
+  "artifact_name": "gemini-voice-balloon_car_20261003_0142_hotblooded",
+  "source_commit_sha": "66f553b1516d77c567b13112b968449876f9bff8",
+  "mode": "direct_voice_only"
+}
