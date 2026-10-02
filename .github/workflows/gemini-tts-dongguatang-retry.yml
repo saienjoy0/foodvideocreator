@@ -1,0 +1,48 @@
+name: Gemini Voice Direct Retry
+
+on:
+  push:
+    branches: [tts-dongguatang-retry]
+    paths:
+      - 'voice_requests/dongguatang_20261003_short_retry.json'
+
+permissions:
+  contents: read
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TTS_MODEL: gemini-3.8-flash-tts
+      GEMINI_TTS_VOICE: Fenrir
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Gemini SDK only
+        run: python -m pip install 'google-genai>=2.25.0'
+      - name: Generate voice directly with guarded retry
+        shell: bash
+        run: |
+          set -u
+          ok=0
+          for i in 1 2 3; do
+            rm -rf voice_outputs/dongguatang_20261003_short_retry
+            if timeout 180s python scripts/run_voice_request.py voice_requests/dongguatang_20261003_short_retry.json; then
+              ok=1
+              break
+            fi
+          done
+          if [[ "$ok" != "1" ]]; then
+            echo "Gemini TTS failed after retries" >&2
+            exit 1
+          fi
+      - name: Upload voice artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-voice-dongguatang_20261003_short_retry
+          path: voice_outputs/dongguatang_20261003_short_retry/
+          if-no-files-found: error
+          retention-days: 30
