@@ -1,0 +1,53 @@
+{
+  "audio_verified": true,
+  "segments": [
+    {
+      "index": 1,
+      "text": "ペットボトルで、風船カーが作れる",
+      "matched": true,
+      "heard": "ペットボトルで、風船カーが作れる",
+      "start": 0.5,
+      "end": 2.2
+    },
+    {
+      "index": 2,
+      "text": "車輪を4つ付けたら、",
+      "matched": true,
+      "heard": "車輪を4つ付けたら、",
+      "start": 3.2,
+      "end": 4.4
+    },
+    {
+      "index": 3,
+      "text": "風船に管をつなぎ、ボトルの上に固定",
+      "matched": true,
+      "heard": "風船に管をつなぎ、ボトルの上に固定",
+      "start": 4.6,
+      "end": 7.7
+    },
+    {
+      "index": 4,
+      "text": "膨らませて離すだけ！",
+      "matched": true,
+      "heard": "膨らませて離すだけ！",
+      "start": 8.5,
+      "end": 10.0
+    },
+    {
+      "index": 5,
+      "text": "空気を後ろに出す反動で進む",
+      "matched": true,
+      "heard": "空気を後ろに出す反動で進む",
+      "start": 10.8,
+      "end": 12.8
+    },
+    {
+      "index": 6,
+      "text": "ロケットと同じ原理",
+      "matched": true,
+      "heard": "ロケットと同じ原理",
+      "start": 13.3,
+      "end": 14.8
+    }
+  ]
+}
