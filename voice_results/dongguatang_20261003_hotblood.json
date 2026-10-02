@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/dongguatang_20261003_hotblood.json",
+  "workflow_run_id": 37048619416,
+  "artifact_name": "gemini-voice-dongguatang_20261003_hotblood",
+  "source_commit_sha": "4a45a9e6efdbfb1f0fbdeee0845820b5c2b2fc2b",
+  "mode": "direct_voice_only"
+}
