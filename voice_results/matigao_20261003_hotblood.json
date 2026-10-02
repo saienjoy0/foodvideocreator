@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/matigao_20261003_hotblood.json",
+  "workflow_run_id": 37052036810,
+  "artifact_name": "gemini-voice-matigao_20261003_hotblood",
+  "source_commit_sha": "e3bee42d324ed5e4a26bb09b415fababdbb46699",
+  "mode": "direct_voice_only"
+}
