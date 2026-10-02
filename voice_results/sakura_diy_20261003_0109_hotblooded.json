@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/sakura_diy_20261003_0109_hotblooded.json",
+  "workflow_run_id": 37038316493,
+  "artifact_name": "gemini-voice-sakura_diy_20261003_0109_hotblooded",
+  "source_commit_sha": "6db7dbdd52105fb51e35050656694923f64f1c56",
+  "mode": "direct_voice_only"
+}
