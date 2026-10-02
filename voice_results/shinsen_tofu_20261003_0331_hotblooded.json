@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/shinsen_tofu_20261003_0331_hotblooded.json",
+  "workflow_run_id": 37048532510,
+  "artifact_name": "gemini-voice-shinsen_tofu_20261003_0331_hotblooded",
+  "source_commit_sha": "343f81d153468d3cf3cedce60b067ed0f964f883",
+  "mode": "direct_voice_only"
+}
