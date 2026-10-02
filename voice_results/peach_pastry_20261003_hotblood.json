@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/peach_pastry_20261003_hotblood.json",
+  "workflow_run_id": 37048633939,
+  "artifact_name": "gemini-voice-peach_pastry_20261003_hotblood",
+  "source_commit_sha": "4cea0aea850de6fe29e4474bf81cd5c9e1569b1d",
+  "mode": "direct_voice_only"
+}
