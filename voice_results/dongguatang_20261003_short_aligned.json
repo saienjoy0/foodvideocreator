@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/dongguatang_20261003_short_aligned.json",
+  "workflow_run_id": 37052299920,
+  "artifact_name": "gemini-voice-dongguatang_20261003_short_aligned",
+  "source_commit_sha": "ade36db12c79269b9cb4f6618b73ea6c6c4e1740",
+  "mode": "direct_voice_only"
+}
