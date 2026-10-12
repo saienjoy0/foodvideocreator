@@ -1,0 +1,181 @@
+{
+  "audio_verified": true,
+  "segments": [
+    {
+      "index": 1,
+      "text": "鶏肉を大量の塩に埋めて焼く!?",
+      "matched": true,
+      "heard": "鶏肉を大量の塩に埋めて焼く!?",
+      "start": 0.58,
+      "end": 3.2
+    },
+    {
+      "index": 2,
+      "text": "いや、絶対しょっぱいでしょ！",
+      "matched": true,
+      "heard": "いや、絶対しょっぱいでしょ！",
+      "start": 3.6,
+      "end": 5.4
+    },
+    {
+      "index": 3,
+      "text": "しかも卵まで！",
+      "matched": true,
+      "heard": "しかも卵まで！",
+      "start": 5.9,
+      "end": 7.2
+    },
+    {
+      "index": 4,
+      "text": "でも実は、この塩には意外な役割がある。",
+      "matched": true,
+      "heard": "でも実は、この塩には意外な役割がある。",
+      "start": 8.0,
+      "end": 11.0
+    },
+    {
+      "index": 5,
+      "text": "まず鶏肉に調味料をもみ込む。",
+      "matched": true,
+      "heard": "まず鶏肉に調味料をもみ込む。",
+      "start": 11.8,
+      "end": 14.0
+    },
+    {
+      "index": 6,
+      "text": "塩に埋めるのに、先に味付けするの？",
+      "matched": true,
+      "heard": "塩に埋めるのに、先に味付けするの？",
+      "start": 14.6,
+      "end": 17.3
+    },
+    {
+      "index": 7,
+      "text": "そして水気をしっかり拭く。",
+      "matched": true,
+      "heard": "そして水気をしっかり拭く。",
+      "start": 17.9,
+      "end": 19.9
+    },
+    {
+      "index": 8,
+      "text": "実はこれが大事！",
+      "matched": true,
+      "heard": "実はこれが大事！",
+      "start": 20.4,
+      "end": 21.8
+    },
+    {
+      "index": 9,
+      "text": "塩は水に溶けると、肉に付きやすくなるから！",
+      "matched": true,
+      "heard": "塩は水に溶けると、肉に付きやすくなるから！",
+      "start": 22.1,
+      "end": 25.0
+    },
+    {
+      "index": 10,
+      "text": "さらに調味料を加えて準備完了！",
+      "matched": true,
+      "heard": "さらに調味料を加えて準備完了！",
+      "start": 25.9,
+      "end": 27.9
+    },
+    {
+      "index": 11,
+      "text": "鍋には大量の粗塩！",
+      "matched": true,
+      "heard": "鍋には大量の粗塩！",
+      "start": 28.7,
+      "end": 30.5
+    },
+    {
+      "index": 12,
+      "text": "鶏肉と同じ重さを使うことも。",
+      "matched": true,
+      "heard": "鶏肉と同じ重さを使うことも。",
+      "start": 31.1,
+      "end": 33.0
+    },
+    {
+      "index": 13,
+      "text": "これを熱すると、なんとオーブン代わりになる！",
+      "matched": true,
+      "heard": "これを熱すると、なんとオーブン代わりになる！",
+      "start": 33.6,
+      "end": 36.6
+    },
+    {
+      "index": 14,
+      "text": "そこへ鶏肉と卵を並べる。",
+      "matched": true,
+      "heard": "そこへ鶏肉と卵を並べる。",
+      "start": 37.3,
+      "end": 39.0
+    },
+    {
+      "index": 15,
+      "text": "えっ、紙で包まないの!?",
+      "matched": true,
+      "heard": "えっ、紙で包まないの!?",
+      "start": 39.4,
+      "end": 41.0
+    },
+    {
+      "index": 16,
+      "text": "普通は紙で包む方法もある。",
+      "matched": true,
+      "heard": "普通は紙で包む方法もある。",
+      "start": 41.6,
+      "end": 43.4
+    },
+    {
+      "index": 17,
+      "text": "でも今回は直接埋めるから、塩味も付きやすい！",
+      "matched": true,
+      "heard": "でも今回は直接埋めるから、塩味も付きやすい！",
+      "start": 43.7,
+      "end": 46.8
+    },
+    {
+      "index": 18,
+      "text": "熱い塩が周りからじっくり火を通す。",
+      "matched": true,
+      "heard": "熱い塩が周りからじっくり火を通す。",
+      "start": 47.5,
+      "end": 50.4
+    },
+    {
+      "index": 19,
+      "text": "掘り出すと、黄金色の鶏肉！",
+      "matched": true,
+      "heard": "掘り出すと、黄金色の鶏肉！",
+      "start": 50.9,
+      "end": 53.0
+    },
+    {
+      "index": 20,
+      "text": "ほぐすと身がほろっと！",
+      "matched": true,
+      "heard": "ほぐすと身がほろっと！",
+      "start": 53.6,
+      "end": 55.2
+    },
+    {
+      "index": 21,
+      "text": "つまり、塩は味付けだけじゃない！",
+      "matched": true,
+      "heard": "つまり塩は味付けだけじゃない！",
+      "start": 55.8,
+      "end": 57.8
+    },
+    {
+      "index": 22,
+      "text": "塩そのものが調理器具だったんだ！",
+      "matched": true,
+      "heard": "塩そのものが調理器具だったんだ！",
+      "start": 58.2,
+      "end": 100.3
+    }
+  ]
+}
