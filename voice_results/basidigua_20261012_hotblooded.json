@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/basidigua_20261012_hotblooded.json",
+  "workflow_run_id": 38250138340,
+  "artifact_name": "gemini-voice-basidigua_20261012_hotblooded",
+  "source_commit_sha": "2da2e452404cb3ec213a3b5c654031503ecdbf48",
+  "mode": "direct_voice_only"
+}
