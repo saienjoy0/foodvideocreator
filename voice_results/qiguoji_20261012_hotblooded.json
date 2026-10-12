@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/qiguoji_20261012_hotblooded.json",
+  "workflow_run_id": 38250830690,
+  "artifact_name": "gemini-voice-qiguoji_20261012_hotblooded",
+  "source_commit_sha": "1f4638ee0c4a42d578107697234726d40dd7affb",
+  "mode": "direct_voice_only"
+}
