@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/candy_dragon_20261017_hotblooded.json",
+  "workflow_run_id": 39018218069,
+  "artifact_name": "gemini-voice-candy_dragon_20261017_hotblooded",
+  "source_commit_sha": "a387fbaa93f7bd1ffe4b367a742f20362cfa5d0a",
+  "mode": "direct_voice_only"
+}
