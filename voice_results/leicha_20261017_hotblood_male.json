@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/leicha_20261017_hotblood_male.json",
+  "workflow_run_id": 39019779181,
+  "artifact_name": "gemini-voice-leicha_20261017_hotblood_male",
+  "source_commit_sha": "8c962dab239a9f2198425a7090f8609cdd80b670",
+  "mode": "direct_voice_only"
+}
