@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/chinese_streetburger_20261017_v1.json",
+  "workflow_run_id": 39017801840,
+  "artifact_name": "gemini-voice-chinese_streetburger_20261017_v1",
+  "source_commit_sha": "7dee99b4a38972393093a1026fc94a10ee99a05c",
+  "mode": "direct_voice_only"
+}
