@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/konjac_tofu_20261017_hotblooded_01.json",
+  "workflow_run_id": 39018772779,
+  "artifact_name": "gemini-voice-konjac_tofu_20261017_hotblooded_01",
+  "source_commit_sha": "288358e4e98a7bec5ca30d80e220ec9ff0f80811",
+  "mode": "direct_voice_only"
+}
