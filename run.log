@@ -1,0 +1,10 @@
+keys: 1
+ok 1/105 a01 5.60s key#1
+ok 2/105 a02 5.92s key#1
+ok 3/105 a03 4.12s key#1
+ok 4/105 a04 3.56s key#1
+timeout a05 #1
+timeout a05 #2
+timeout a05 #3
+timeout a05 #4
+timeout a05 #5
