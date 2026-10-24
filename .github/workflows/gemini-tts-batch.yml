@@ -1,7 +1,8 @@
 name: Gemini Voice Batch
 
 # voice_batches/<name>.json の行を1行ずつ WAV にして、まとめて artifact にする。
-# 既存の Gemini Voice Direct（1リクエスト1本）とは別。結果はコミットしない。
+# 既存の Gemini Voice Direct（1リクエスト1本）とは別。
+# 結果は artifact と、ブランチ voice-out/<name>（main とは別。毎回上書き）に置く。
 
 on:
   push:
@@ -16,7 +17,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: gemini-voice-batch-${{ github.ref }}
@@ -63,3 +64,19 @@ jobs:
           path: voice_outputs/${{ steps.request.outputs.stem }}/
           if-no-files-found: error
           retention-days: 30
+      - name: Push voices to branch voice-out/<name>
+        env:
+          STEM: ${{ steps.request.outputs.stem }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="voice_outputs/${STEM}"
+          TMP="$(mktemp -d)"
+          cp -r "$OUT"/. "$TMP"/
+          cd "$TMP"
+          git init -q -b "voice-out/${STEM}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -q -m "voices: ${STEM} [skip ci]"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "HEAD:refs/heads/voice-out/${STEM}"
