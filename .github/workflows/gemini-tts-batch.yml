@@ -26,18 +26,34 @@ concurrency:
 jobs:
   synthesize:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
       INPUT_REQUEST_FILE: ${{ inputs.request_file }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: python -m pip install 'google-genai>=2.25.0'
+      # setup-python が止まることがあったので、ランナーに入っている python3 を使う
+      - name: Install Gemini SDK
+        timeout-minutes: 5
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q 'google-genai>=2.25.0'
       - name: Resolve request
         id: request
         shell: bash
@@ -56,8 +72,26 @@ jobs:
           echo "stem=$STEM" >> "$GITHUB_OUTPUT"
       - name: Check secret
         run: test -n "${GEMINI_API_KEY:-}" || { echo "GEMINI_API_KEY is missing" >&2; exit 2; }
+      - name: Restore earlier progress (voice-out/<name>)
+        shell: bash
+        run: |
+          set -euo pipefail
+          STEM='${{ steps.request.outputs.stem }}'
+          mkdir -p "voice_outputs/${STEM}"
+          if git fetch -q --depth 1 origin "voice-out/${STEM}" 2>/dev/null; then
+            git --work-tree="voice_outputs/${STEM}" checkout FETCH_HEAD -- . && git reset -q
+            echo "restored: $(ls voice_outputs/${STEM} | wc -l) files"
+          fi
       - name: Generate voices
-        run: python scripts/run_voice_batch.py '${{ steps.request.outputs.request }}'
+        env:
+          STEM: ${{ steps.request.outputs.stem }}
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+          PROGRESS_CMD: >-
+            cd "voice_outputs/$STEM" && rm -rf .git && git init -q -b p && git add -A &&
+            git -c user.name=github-actions[bot] -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "voices: $STEM [skip ci]" &&
+            git push -q -f "$PUSH_URL" "HEAD:refs/heads/voice-out/$STEM"; rm -rf .git
+        timeout-minutes: 75
+        run: .venv/bin/python scripts/run_voice_batch.py '${{ steps.request.outputs.request }}'
       - uses: actions/upload-artifact@v4
         with:
           name: gemini-voice-batch-${{ steps.request.outputs.stem }}
