@@ -77,14 +77,20 @@ def main() -> None:
         tries_on_this_round = 0
         for attempt in range(1, 4 * len(keys) + 4):
             env = dict(os.environ, GEMINI_API_KEY=keys[k % len(keys)])
-            proc = subprocess.run(
-                [sys.executable, "examples/gemini_voice_command.py"],
-                input=json.dumps(provider_req, ensure_ascii=False),
-                text=True,
-                capture_output=True,
-                env=env,
-                timeout=180,
-            )
+            try:
+                proc = subprocess.run(
+                    [sys.executable, "examples/gemini_voice_command.py"],
+                    input=json.dumps(provider_req, ensure_ascii=False),
+                    text=True,
+                    capture_output=True,
+                    env=env,
+                    timeout=180,
+                )
+            except subprocess.TimeoutExpired:
+                err = "timeout 180s"
+                print(f"timeout {lid} #{attempt}", flush=True)
+                k += 1
+                continue
             if proc.returncode == 0:
                 manifest[lid] = round(float(json.loads(proc.stdout)["duration"]), 3)
                 print(f"ok {i + 1}/{len(lines)} {lid} {manifest[lid]:.2f}s key#{k % len(keys) + 1}", flush=True)

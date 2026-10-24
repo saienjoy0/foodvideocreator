@@ -49,11 +49,6 @@ jobs:
         with:
           fetch-depth: 2
       # setup-python が止まることがあったので、ランナーに入っている python3 を使う
-      - name: Install Gemini SDK
-        timeout-minutes: 5
-        run: |
-          python3 -m venv .venv
-          .venv/bin/pip install -q 'google-genai>=2.25.0'
       - name: Resolve request
         id: request
         shell: bash
@@ -70,6 +65,12 @@ jobs:
           [[ "$STEM" =~ ^[A-Za-z0-9_-]+$ ]]
           echo "request=$REQUEST" >> "$GITHUB_OUTPUT"
           echo "stem=$STEM" >> "$GITHUB_OUTPUT"
+      - name: Install Gemini SDK
+        timeout-minutes: 5
+        run: |
+          mkdir -p voice_outputs
+          { python3 --version; python3 -m venv .venv && .venv/bin/pip install -q 'google-genai>=2.25.0' && echo "sdk ok"; } 2>&1 | tee -a voice_outputs/install.log
+          test -x .venv/bin/python
       - name: Check secret
         run: test -n "${GEMINI_API_KEY:-}" || { echo "GEMINI_API_KEY is missing" >&2; exit 2; }
       - name: Restore earlier progress (voice-out/<name>)
@@ -91,22 +92,31 @@ jobs:
             git -c user.name=github-actions[bot] -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "voices: $STEM [skip ci]" &&
             git push -q -f "$PUSH_URL" "HEAD:refs/heads/voice-out/$STEM"; rm -rf .git
         timeout-minutes: 75
-        run: .venv/bin/python scripts/run_voice_batch.py '${{ steps.request.outputs.request }}'
+        shell: bash
+        run: |
+          set -o pipefail
+          .venv/bin/python -u scripts/run_voice_batch.py '${{ steps.request.outputs.request }}' 2>&1 | tee -a "voice_outputs/$STEM/run.log"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: gemini-voice-batch-${{ steps.request.outputs.stem }}
           path: voice_outputs/${{ steps.request.outputs.stem }}/
           if-no-files-found: error
           retention-days: 30
-      - name: Push voices to branch voice-out/<name>
+      - name: Push voices and logs to branch voice-out/<name>
+        if: always()
         env:
           STEM: ${{ steps.request.outputs.stem }}
         shell: bash
         run: |
           set -euo pipefail
+          [[ -n "${STEM}" ]] || { echo "no stem"; exit 0; }
           OUT="voice_outputs/${STEM}"
+          mkdir -p "$OUT"
+          cp voice_outputs/install.log "$OUT"/ 2>/dev/null || true
           TMP="$(mktemp -d)"
           cp -r "$OUT"/. "$TMP"/
+          rm -rf "$TMP/.git"
           cd "$TMP"
           git init -q -b "voice-out/${STEM}"
           git config user.name 'github-actions[bot]'
