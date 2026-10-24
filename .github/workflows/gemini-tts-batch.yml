@@ -1,0 +1,65 @@
+name: Gemini Voice Batch
+
+# voice_batches/<name>.json の行を1行ずつ WAV にして、まとめて artifact にする。
+# 既存の Gemini Voice Direct（1リクエスト1本）とは別。結果はコミットしない。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'voice_batches/*.json'
+  workflow_dispatch:
+    inputs:
+      request_file:
+        description: 'voice_batches/<name>.json'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gemini-voice-batch-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      INPUT_REQUEST_FILE: ${{ inputs.request_file }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai>=2.25.0'
+      - name: Resolve request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            REQUEST="$INPUT_REQUEST_FILE"
+          else
+            REQUEST="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- 'voice_batches/*.json' | head -n 1)"
+          fi
+          test -n "$REQUEST" && test -f "$REQUEST"
+          case "$REQUEST" in voice_batches/*.json) ;; *) echo "invalid path" >&2; exit 2 ;; esac
+          STEM="$(basename "$REQUEST" .json)"
+          [[ "$STEM" =~ ^[A-Za-z0-9_-]+$ ]]
+          echo "request=$REQUEST" >> "$GITHUB_OUTPUT"
+          echo "stem=$STEM" >> "$GITHUB_OUTPUT"
+      - name: Check secret
+        run: test -n "${GEMINI_API_KEY:-}" || { echo "GEMINI_API_KEY is missing" >&2; exit 2; }
+      - name: Generate voices
+        run: python scripts/run_voice_batch.py '${{ steps.request.outputs.request }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gemini-voice-batch-${{ steps.request.outputs.stem }}
+          path: voice_outputs/${{ steps.request.outputs.stem }}/
+          if-no-files-found: error
+          retention-days: 30
