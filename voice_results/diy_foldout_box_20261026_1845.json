@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/diy_foldout_box_20261026_1845.json",
+  "workflow_run_id": 40305139357,
+  "artifact_name": "gemini-voice-diy_foldout_box_20261026_1845",
+  "source_commit_sha": "dd70c22a9960b41c2738d55f4e50a244a4279228",
+  "mode": "direct_voice_only"
+}
