@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/youmian_20261026_1847_hotblooded.json",
+  "workflow_run_id": 40307425671,
+  "artifact_name": "gemini-voice-youmian_20261026_1847_hotblooded",
+  "source_commit_sha": "01fa4f9dcb78b1adb92fc87b1551eddfd8e7f044",
+  "mode": "direct_voice_only"
+}
