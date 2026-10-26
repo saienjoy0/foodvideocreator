@@ -1,0 +1,89 @@
+name: Purple Yam and Persimmon 08G Voice
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/purple-yam-08g-independent.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: purple-yam-persimmon-08g-unique
+  cancel-in-progress: false
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      STEM: purple_yam_persimmon_20261026_08g
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+      PROGRESS_CMD: >-
+        cd "voice_outputs/$STEM" && rm -rf .git && git init -q -b p &&
+        git add -A &&
+        git -c user.name=github-actions[bot] -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "voices: $STEM [skip ci]" &&
+        git push -q -f "$PUSH_URL" "HEAD:refs/heads/voice-out/$STEM"; rm -rf .git
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDK
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q 'google-genai>=2.25.0'
+      - name: Check key
+        run: test -n "${GEMINI_API_KEY:-}" || exit 2
+      - name: Restore segments if present
+        run: |
+          mkdir -p "voice_outputs/$STEM"
+          if git fetch -q --depth 1 origin "voice-out/$STEM" 2>/dev/null; then
+            git --work-tree="voice_outputs/$STEM" checkout FETCH_HEAD -- . || true
+            git reset -q
+          fi
+      - name: Generate approved 14 Gemini voices
+        env:
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        shell: bash
+        run: |
+          set -o pipefail
+          .venv/bin/python -u scripts/run_voice_batch.py "voice_batches/$STEM.json" 2>&1 | tee "voice_outputs/$STEM/run.log"
+      - name: Verify WAV count
+        shell: bash
+        run: |
+          test "$(find "voice_outputs/$STEM" -maxdepth 1 -name 's*.wav' | wc -l)" -eq 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: purple-yam-persimmon-gemini-08g
+          path: voice_outputs/${{ env.STEM }}/
+          retention-days: 30
+      - name: Publish generated segments
+        if: always()
+        env:
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="voice_outputs/$STEM"
+          test -d "$OUT"
+          TEMP="$(mktemp -d)"
+          cp -a "$OUT"/. "$TEMP"/
+          cd "$TEMP"
+          rm -rf .git
+          git init -q -b p
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "voices: $STEM [skip ci]"
+          git push -q -f "$PUSH_URL" "HEAD:refs/heads/voice-out/$STEM"
