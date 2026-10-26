@@ -1,0 +1,90 @@
+name: Gemini Yacon Voice 08G
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/gemini-yacon-20261026.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gemini-yacon-20261026
+  cancel-in-progress: false
+
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+      REQUEST: voice_batches/yacon_20261026_hotblood_male.json
+      STEM: yacon_20261026_hotblood_male
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Gemini SDK
+        run: |
+          set -euo pipefail
+          python3 -m venv .venv
+          .venv/bin/pip install -q 'google-genai>=2.25.0'
+      - name: Check API secret
+        run: test -n "${GEMINI_API_KEY:-}"
+      - name: Generate each approved voice line
+        shell: bash
+        run: |
+          set -o pipefail
+          .venv/bin/python -u scripts/run_voice_batch.py "$REQUEST" 2>&1 | tee voice-generation.log
+      - name: Verify all 11 voice segments
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          out = Path("voice_outputs/yacon_20261026_hotblood_male")
+          req = json.loads(Path("voice_batches/yacon_20261026_hotblood_male.json").read_text())
+          ids = [x["id"] for x in req["lines"]]
+          manifest = json.loads((out / "manifest.json").read_text())
+          missing = [i for i in ids if i not in manifest or not (out / (i + ".wav")).is_file()]
+          print("lines:",len(ids),"produced:",len(ids)-len(missing),"missing:",missing)
+          assert not missing, "incomplete Gemini narration"
+          PY
+      - name: Upload WAV and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-yacon-20261026-male-hotblood
+          path: |
+            voice_outputs/yacon_20261026_hotblood_male/
+            voice-generation.log
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Publish WAV to voice-out branch
+        if: always()
+        shell: bash
+        env:
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: |
+          set -euo pipefail
+          mkdir -p voice_outputs/yacon_20261026_hotblood_male
+          cp voice-generation.log voice_outputs/yacon_20261026_hotblood_male/run.log || true
+          cd voice_outputs/yacon_20261026_hotblood_male
+          git init -q -b p
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -q -m 'Gemini Yacon voice 08G results'
+          git push -q -f "$PUSH_URL" HEAD:refs/heads/voice-out/yacon_20261026_hotblood_male
