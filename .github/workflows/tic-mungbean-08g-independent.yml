@@ -1,0 +1,72 @@
+name: TIC Mungbean Gemini 08G Independent
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-mungbean-08g-independent.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      ALL_GEMINI_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Gemini SDK
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q 'google-genai>=2.25.0'
+      - name: Generate approved male hotblooded voice
+        shell: bash
+        run: |
+          .venv/bin/python - <<'PY'
+          import os, subprocess, json, pathlib, sys
+          reqpath = pathlib.Path("voice_requests/tic_mungbean_liangfen_20261026_hotblood_full.json")
+          req = json.loads(reqpath.read_text(encoding="utf-8"))
+          keys = list(dict.fromkeys(k.strip() for k in os.environ["ALL_GEMINI_KEYS"].splitlines() if k.strip()))
+          if not keys:
+              raise SystemExit("No Gemini key configured")
+          print(f"Available keys: {len(keys)}", flush=True)
+          for model in ["gemini-3.8-flash-tts", "gemini-2.5-flash-preview-tts"]:
+              req["profile"]["model"] = model
+              reqpath.write_text(json.dumps(req, ensure_ascii=False, indent=2)+"\n",encoding="utf-8")
+              for idx,key in enumerate(keys):
+                  print(f"Gemini attempt with model {model}, key index {idx+1}", flush=True)
+                  env = dict(os.environ, GEMINI_API_KEY=key)
+                  try:
+                      p = subprocess.run([sys.executable, "scripts/run_voice_request.py", str(reqpath)], env=env, capture_output=True, text=True, timeout=165)
+                  except subprocess.TimeoutExpired:
+                      print("Generation timed out; trying next key", flush=True);continue
+                  if p.returncode==0:
+                      outpath = pathlib.Path("voice_outputs/tic_mungbean_liangfen_20261026_hotblood_full/voice.wav")
+                      if not outpath.exists() or outpath.stat().st_size==0:
+                          raise SystemExit("Gemini reported success but audio absent")
+                      print("Success:",model,"bytes:",outpath.stat().st_size,flush=True)
+                      raise SystemExit(0)
+                  print("Gemini failed (truncated):",p.stderr[-360:],flush=True)
+          raise SystemExit("All Gemini attempts failed")
+          PY
+      - name: Publish WAV voice output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-mungbean-20261026-08g-independent
+          path: voice_outputs/tic_mungbean_liangfen_20261026_hotblood_full/
+          retention-days: 30
+          if-no-files-found: warn
