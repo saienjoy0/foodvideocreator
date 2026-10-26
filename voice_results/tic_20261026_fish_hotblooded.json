@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/tic_20261026_fish_hotblooded.json",
+  "workflow_run_id": 40306045026,
+  "artifact_name": "gemini-voice-tic_20261026_fish_hotblooded",
+  "source_commit_sha": "ffa2a5703b4f3a84103ca90848a38626d1d03974",
+  "mode": "direct_voice_only"
+}
