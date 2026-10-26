@@ -1,0 +1,33 @@
+keys: 1
+ok 1/14 a01 5.68s key#1
+ok 2/14 a02 3.60s key#1
+ok 3/14 a03 6.72s key#1
+timeout a04 #1
+timeout a04 #2
+timeout a04 #3
+ok 4/14 a04 4.68s key#1
+ok 5/14 a05 5.32s key#1
+timeout a06 #1
+ok 6/14 a06 6.68s key#1
+timeout a07 #1
+timeout a07 #2
+timeout a07 #3
+timeout a07 #4
+timeout a07 #5
+timeout a07 #6
+timeout a07 #7
+FAILED a07: timeout 180s
+timeout a08 #1
+timeout a08 #2
+timeout a08 #3
+timeout a08 #4
+timeout a08 #5
+timeout a08 #6
+timeout a08 #7
+FAILED a08: timeout 180s
+timeout a09 #1
+timeout a09 #2
+timeout a09 #3
+timeout a09 #4
+timeout a09 #5
+timeout a09 #6
