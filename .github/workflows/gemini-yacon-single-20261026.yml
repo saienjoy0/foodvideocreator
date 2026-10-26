@@ -1,0 +1,60 @@
+name: Gemini Yacon Single Voice 08G
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/gemini-yacon-single-20261026.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gemini-yacon-single-20261026
+  cancel-in-progress: false
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Gemini SDK
+        run: python3 -m pip install -q 'google-genai>=2.25.0'
+      - name: Generate Fenrir Gemini WAV (all approved lines)
+        run: python3 scripts/run_voice_request.py voice_requests/yacon_20261026_hotblood_male_full.json
+      - name: Verify WAV
+        run: |
+          python3 - <<'PY'
+          import json,wave
+          from pathlib import Path
+          f=Path("voice_outputs/yacon_20261026_hotblood_male_full/voice.wav")
+          with wave.open(str(f),"rb") as wf:
+            duration=wf.getnframes()/wf.getframerate()
+          print("duration",duration)
+          assert duration>20 and f.stat().st_size>100000
+          PY
+      - name: Archive voice
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yacon-20261026-full-gemini-voice
+          path: voice_outputs/yacon_20261026_hotblood_male_full/
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Publish audio branch
+        if: success()
+        env:
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd voice_outputs/yacon_20261026_hotblood_male_full
+          git init -q -b p
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -q -m 'Gemini yacon full voice'
+          git push -q -f "$PUSH_URL" HEAD:refs/heads/voice-out/yacon_20261026_hotblood_male_full
