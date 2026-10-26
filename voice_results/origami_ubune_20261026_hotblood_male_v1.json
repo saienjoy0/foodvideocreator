@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/origami_ubune_20261026_hotblood_male_v1.json",
+  "workflow_run_id": 40305208332,
+  "artifact_name": "gemini-voice-origami_ubune_20261026_hotblood_male_v1",
+  "source_commit_sha": "75e46d4e18c9460d52660bfee0a6cbe844872900",
+  "mode": "direct_voice_only"
+}
