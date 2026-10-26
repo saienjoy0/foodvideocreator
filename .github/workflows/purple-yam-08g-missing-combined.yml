@@ -1,0 +1,65 @@
+name: Purple Yam 08G Missing Voices Combined
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/purple-yam-08g-missing-combined.yml']
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Gemini
+        run: python3 -m pip install -q 'google-genai>=2.25.0'
+      - name: Generate 7 missing lines in one Gemini request
+        run: |
+          mkdir -p purple_08g_combined
+          cat >/tmp/voice_missing.py <<'PY'
+          import json,os,subprocess,sys,time,pathlib
+          req=json.loads(pathlib.Path('voice_batches/purple_yam_persimmon_20261026_08g.json').read_text(encoding='utf-8'))
+          missing={'s07','s08','s10','s11','s12','s13','s14'}
+          lines=[x for x in req['lines'] if x['id'] in missing]
+          text='\n\n\n'.join(x['text'] for x in lines)
+          keys=list(dict.fromkeys(s.strip() for s in os.environ['GEMINI_API_KEYS'].splitlines() if s.strip()))
+          output=pathlib.Path('purple_08g_combined')
+          (output/'lines.json').write_text(json.dumps(lines,ensure_ascii=False,indent=2),encoding='utf8')
+          logs=[]
+          for idx in range(len(keys)):
+            key=keys[idx]
+            request={'text':text,'output_path':str((output/'missing_all.wav').resolve()),'profile':{'model':'gemini-2.5-flash-preview-tts','voice_name':'Fenrir','style':'明るく力強い熱血漢の日本語男性ナレーション。以下の文章のみ順番通り正確に読み上げる。段落ごとに少し間を取り、余計な発話を入れない。'}}
+            try:
+              p=subprocess.run([sys.executable,'examples/gemini_voice_command.py'],input=json.dumps(request,ensure_ascii=False),text=True,capture_output=True,env=dict(os.environ,GEMINI_API_KEY=key),timeout=90)
+              if p.returncode==0:
+                (output/'provider_metadata.json').write_text(p.stdout,encoding='utf8')
+                print('SUCCESS key index',idx,flush=True)
+                break
+              logs.append({'key_index':idx,'stderr':p.stderr[-650:]})
+            except Exception as e: logs.append({'key_index':idx,'error':str(e)})
+            time.sleep(2)
+          else:
+            (output/'failures.json').write_text(json.dumps(logs,ensure_ascii=False,indent=2),encoding='utf8')
+            raise SystemExit('All Gemini keys exhausted or unavailable')
+          PY
+          python3 /tmp/voice_missing.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: purple-yam-08g-seven-missing-combined
+          path: purple_08g_combined/
+          retention-days: 30
