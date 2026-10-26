@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/negi_layers_20261026_hotblood_male.json",
+  "workflow_run_id": 40306529126,
+  "artifact_name": "gemini-voice-negi_layers_20261026_hotblood_male",
+  "source_commit_sha": "b425d29873f379db264b1dcb286db389cb330bc6",
+  "mode": "direct_voice_only"
+}
