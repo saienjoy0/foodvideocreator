@@ -1,0 +1,53 @@
+{
+  "audio_verified": true,
+  "segments": [
+    {
+      "index": 1,
+      "text": "えっ、葉っぱ1枚で花束!?",
+      "matched": true,
+      "heard": "えっ、葉っぱ1枚で花束!?",
+      "start": 0.49,
+      "end": 2.59
+    },
+    {
+      "index": 2,
+      "text": "まず真ん中を細く残して切る！",
+      "matched": true,
+      "heard": "まず真ん中を細く残して切る！",
+      "start": 3.2,
+      "end": 5.8
+    },
+    {
+      "index": 3,
+      "text": "左右をくるっと重ねて、ポケットに！",
+      "matched": true,
+      "heard": "左右をくるっと重ねて、ポケットに！",
+      "start": 6.49,
+      "end": 8.79
+    },
+    {
+      "index": 4,
+      "text": "残した細い部分でキュッと固定！のりも不要！",
+      "matched": true,
+      "heard": "残した細い部分でキュッと固定！のりも不要！",
+      "start": 9.5,
+      "end": 12.6
+    },
+    {
+      "index": 5,
+      "text": "あとは好きな小花を入れるだけ！",
+      "matched": true,
+      "heard": "あとは好きな小花を入れるだけ！",
+      "start": 13.4,
+      "end": 15.8
+    },
+    {
+      "index": 6,
+      "text": "ほら！手のひらサイズの花束が完成！",
+      "matched": true,
+      "heard": "ほら！手のひらサイズの花束が完成！",
+      "start": 16.59,
+      "end": 19.49
+    }
+  ]
+}
