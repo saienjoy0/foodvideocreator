@@ -1,0 +1,29 @@
+keys: 1
+timeout s01 #1
+timeout s01 #2
+timeout s01 #3
+timeout s01 #4
+timeout s01 #5
+timeout s01 #6
+timeout s01 #7
+FAILED s01: timeout 180s
+timeout s02 #1
+timeout s02 #2
+timeout s02 #3
+timeout s02 #4
+timeout s02 #5
+timeout s02 #6
+timeout s02 #7
+FAILED s02: timeout 180s
+timeout s03 #1
+timeout s03 #2
+timeout s03 #3
+timeout s03 #4
+timeout s03 #5
+timeout s03 #6
+timeout s03 #7
+FAILED s03: timeout 180s
+timeout s04 #1
+timeout s04 #2
+timeout s04 #3
+timeout s04 #4
