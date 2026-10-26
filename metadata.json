@@ -1,0 +1,15 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/yacon_20261026_hotblood_male_legacy.json",
+  "request_sha256": "a01b1a9abf5bb920f5d8b56bc2ebce642812fc46f6db496e3498bf23da1ee653",
+  "text_sha256": "99f10809313889010e33b822a2611e5b6202b5728573e5253587f6dcce0ed00b",
+  "output_file": "voice_outputs/yacon_20261026_hotblood_male_legacy/voice.wav",
+  "provider_result": {
+    "duration": 72.330958,
+    "sample_rate": 24000,
+    "provider": "gemini",
+    "model": "gemini-2.5-flash-preview-tts",
+    "voice_name": "Fenrir",
+    "mime_type": "audio/L16;codec=pcm;rate=24000"
+  }
+}
