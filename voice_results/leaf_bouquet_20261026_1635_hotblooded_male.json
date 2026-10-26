@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/leaf_bouquet_20261026_1635_hotblooded_male.json",
+  "workflow_run_id": 40305284285,
+  "artifact_name": "gemini-voice-leaf_bouquet_20261026_1635_hotblooded_male",
+  "source_commit_sha": "2b257111fdce146752432a07f80d50b27b4b2a8d",
+  "mode": "direct_voice_only"
+}
