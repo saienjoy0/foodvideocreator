@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/tic_20261026_noodles_hotblooded_retry.json",
+  "workflow_run_id": 40306496497,
+  "artifact_name": "gemini-voice-tic_20261026_noodles_hotblooded_retry",
+  "source_commit_sha": "8b8687f33af4587c78a6743f4762c4e8d0cb52e0",
+  "mode": "direct_voice_only"
+}
