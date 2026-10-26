@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/yacon_20261026_hotblood_male_full.json",
+  "workflow_run_id": 40311079408,
+  "artifact_name": "gemini-voice-yacon_20261026_hotblood_male_full",
+  "source_commit_sha": "7cfb88fcd84e0fa91296e34f3a2ca3b77dbf7153",
+  "mode": "direct_voice_only"
+}
