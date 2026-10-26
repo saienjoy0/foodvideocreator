@@ -43,7 +43,7 @@ jobs:
           if not keys:
               raise SystemExit("No Gemini key configured")
           print(f"Available keys: {len(keys)}", flush=True)
-          for model in ["gemini-3.8-flash-tts", "gemini-2.5-flash-preview-tts"]:
+          for model in ["gemini-2.5-flash-preview-tts", "gemini-3.8-flash-tts"]:
               req["profile"]["model"] = model
               reqpath.write_text(json.dumps(req, ensure_ascii=False, indent=2)+"\n",encoding="utf-8")
               for idx,key in enumerate(keys):
