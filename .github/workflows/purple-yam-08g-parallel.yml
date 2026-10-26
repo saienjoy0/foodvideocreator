@@ -1,0 +1,72 @@
+name: Purple Yam Gemini 08G Parallel
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/purple-yam-08g-parallel.yml'
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Gemini
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q 'google-genai>=2.25.0'
+      - name: Generate fourteen approved lines in parallel
+        run: |
+          mkdir -p purple_gemini_outputs
+          cat > /tmp/parallel_tts.py <<'PY'
+          import os, json, subprocess, sys, time, concurrent.futures, pathlib, wave
+          req=json.loads(pathlib.Path('voice_batches/purple_yam_persimmon_20261026_08g.json').read_text())
+          profile=req['profile']; lines=req['lines']
+          keys=list(dict.fromkeys(k.strip() for k in os.environ['GEMINI_API_KEYS'].splitlines() if k.strip()))
+          if not keys: raise RuntimeError('No configured Gemini API keys')
+          directory=pathlib.Path('purple_gemini_outputs')
+          def task(pair):
+              idx,line=pair; lid=line['id']; path=directory/(lid+'.wav')
+              attempts=[]
+              for a in range(4):
+                  pf=dict(profile)
+                  if a>=2: pf['model']='gemini-2.5-flash-preview-tts'
+                  key=keys[(idx+a)%len(keys)]
+                  request=dict(text=line['text'],output_path=str(path.resolve()),profile=pf)
+                  try:
+                      result=subprocess.run(['.venv/bin/python','examples/gemini_voice_command.py'],input=json.dumps(request,ensure_ascii=False),text=True,capture_output=True,env=dict(os.environ,GEMINI_API_KEY=key),timeout=110)
+                      if result.returncode==0 and path.exists() and path.stat().st_size>1000:
+                          with wave.open(str(path),'rb') as wav: duration=wav.getnframes()/wav.getframerate()
+                          return dict(id=lid,ok=True,model=pf['model'],duration=round(duration,3),attempt=a+1)
+                      attempts.append((pf['model'],(result.stderr or 'unknown error')[-350:]))
+                  except Exception as e:
+                      attempts.append((pf['model'],str(e)[-350:]))
+                  time.sleep(1)
+              return dict(id=lid,ok=False,errors=attempts)
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+              output=list(pool.map(task,enumerate(lines)))
+          (directory/'manifest.json').write_text(json.dumps(output,ensure_ascii=False,indent=2))
+          print(json.dumps(output,ensure_ascii=False),flush=True)
+          if len(output)!=14 or not all(x['ok'] for x in output):sys.exit(2)
+          PY
+          python3 /tmp/parallel_tts.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: purple-yam-persimmon-08g-parallel
+          path: purple_gemini_outputs/
+          retention-days: 30
