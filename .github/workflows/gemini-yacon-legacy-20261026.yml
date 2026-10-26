@@ -1,0 +1,53 @@
+name: Gemini Yacon Legacy Voice 08G
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/gemini-yacon-legacy-20261026.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: gemini-yacon-legacy-20261026
+  cancel-in-progress: false
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install -q 'google-genai>=2.25.0'
+      - name: Use Gemini 2.5 Flash TTS fallback for approved script
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          src=Path('voice_requests/yacon_20261026_hotblood_male_full.json')
+          dst=Path('voice_requests/yacon_20261026_hotblood_male_legacy.json')
+          j=json.loads(src.read_text(encoding='utf-8'))
+          j['profile']['model']='gemini-2.5-flash-preview-tts'
+          dst.write_text(json.dumps(j,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+          python3 scripts/run_voice_request.py voice_requests/yacon_20261026_hotblood_male_legacy.json
+      - name: Upload Gemini WAV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-yacon-legacy-fallback-voice
+          path: voice_outputs/yacon_20261026_hotblood_male_legacy/
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Publish WAV in public voice-out branch
+        if: success()
+        env:
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: |
+          set -euo pipefail
+          cd voice_outputs/yacon_20261026_hotblood_male_legacy
+          git init -q -b p
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -q -m 'Gemini 2.5 fallback WAV for yacon'
+          git push -q -f "$PUSH_URL" HEAD:refs/heads/voice-out/yacon_20261026_hotblood_male_legacy
