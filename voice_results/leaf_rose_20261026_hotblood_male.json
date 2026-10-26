@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "request_file": "voice_requests/leaf_rose_20261026_hotblood_male.json",
+  "workflow_run_id": 40304607338,
+  "artifact_name": "gemini-voice-leaf_rose_20261026_hotblood_male",
+  "source_commit_sha": "76679f88cc652b846b38c3f2dd37a0c85a5ba6c2",
+  "mode": "direct_voice_only"
+}
