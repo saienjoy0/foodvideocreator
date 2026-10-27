@@ -94,8 +94,9 @@ if REQ.get('try_whole_first'):
         d = tts(join(all_lines), p)
         log(f'  whole -> {d:.1f}s')
         if d > expected * 0.75:
-            a = align(all_lines, p)
-            (OUT / 'whole.align.json').write_text(json.dumps(a, ensure_ascii=False, indent=1), encoding='utf-8')
+            if REQ.get('align', True):
+                a = align(all_lines, p)
+                (OUT / 'whole.align.json').write_text(json.dumps(a, ensure_ascii=False, indent=1), encoding='utf-8')
             summary['parts'].append({'id': 'whole', 'wav': 'whole.wav', 'dur': d, 'lines': [l['id'] for l in all_lines]})
             done = True
         else:
@@ -109,8 +110,9 @@ if not done:
         log(f"{c['id']}: {len(c['lines'])} lines, expect ~{exp:.0f}s")
         d = tts(join(c['lines']), p)
         log(f'  -> {d:.1f}s')
-        a = align(c['lines'], p)
-        (OUT / f"{c['id']}.align.json").write_text(json.dumps(a, ensure_ascii=False, indent=1), encoding='utf-8')
+        if REQ.get('align', True):
+            a = align(c['lines'], p)
+            (OUT / f"{c['id']}.align.json").write_text(json.dumps(a, ensure_ascii=False, indent=1), encoding='utf-8')
         summary['parts'].append({'id': c['id'], 'wav': p.name, 'dur': d, 'lines': [l['id'] for l in c['lines']]})
         time.sleep(3)
 (OUT / 'summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding='utf-8')
