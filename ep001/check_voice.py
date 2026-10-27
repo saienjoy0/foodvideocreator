@@ -32,7 +32,8 @@ for g, grp in enumerate(groups):
             w = min(rest.values()) - now + 1; print(f'  all keys resting, wait {w:.0f}s', flush=True); time.sleep(max(1, w)); continue
         k = live[call % len(live)]; m = MODELS[(attempt // max(1, len(KEYS))) % len(MODELS)]; call += 1
         try:
-            r = genai.Client(api_key=k).models.generate_content(model=m, contents=[prompt, types.Part.from_bytes(data=data, mime_type='audio/mpeg')],
+            client = genai.Client(api_key=k)
+            r = client.models.generate_content(model=m, contents=[prompt, types.Part.from_bytes(data=data, mime_type='audio/mpeg')],
                                                                 config=types.GenerateContentConfig(response_mime_type='application/json', temperature=0))
             got = json.loads(r.text); print(f'group {g}: ok ({m}, key #{KEYS.index(k) + 1})', flush=True); break
         except Exception as e:
