@@ -45,7 +45,9 @@ jobs:
         run: python3 -m venv .venv && .venv/bin/pip install -q 'google-genai>=2.25.0'
       - name: Make voice or check
         run: |
-          if [ -f ep001/MODE ] && [ "$(cat ep001/MODE)" = "whisper" ]; then
+          if [ -f ep001/MODE ] && [ "$(cat ep001/MODE)" = "regen" ]; then
+            .venv/bin/pip install -q faster-whisper && .venv/bin/python -u ep001/regen.py 2>&1 | tee run.log
+          elif [ -f ep001/MODE ] && [ "$(cat ep001/MODE)" = "whisper" ]; then
             .venv/bin/pip install -q faster-whisper && .venv/bin/python -u ep001/check_whisper.py 2>&1 | tee run.log
           elif [ -f ep001/MODE ] && [ "$(cat ep001/MODE)" = "check" ]; then
             .venv/bin/python -u ep001/check_voice.py 2>&1 | tee run.log
