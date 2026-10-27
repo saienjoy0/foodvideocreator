@@ -37,7 +37,7 @@ for L in R['lines']:
         x16 = np.interp(np.arange(int(len(x) * 16000 / sr)) * sr / 16000, np.arange(len(x)), x).astype(np.float32)
         heard = ''.join(s.text for s in asr.transcribe(x16, language='ja', beam_size=5)[0])
         ratio = difflib.SequenceMatcher(None, norm(L['text']), norm(heard)).ratio()
-        bad = [f for f in L['forbid'] if f in heard]
+        bad = [f for f in L['forbid'] if f in heard] + ['need:' + n for n in L.get('need', []) if n not in heard]
         print(L['id'], 'take', take, round(ratio, 3), bad, heard, flush=True)
         if not bad and (best is None or ratio > best[1]): best = (p, ratio, heard)
         if not bad and ratio >= 0.9: break
