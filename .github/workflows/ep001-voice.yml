@@ -1,0 +1,57 @@
+name: ep001 voice (part 1)
+
+# ブランチ ep001-voice への push だけで動く（main には触らない）。
+# ep001/voice_request.json の台本を Gemini TTS（Charon）でまとめて声にし、
+# 行ごとの時刻を取って、artifact とブランチ ep001-voice-out に置く。
+
+on:
+  push:
+    branches: [ep001-voice]
+    paths:
+      - 'ep001/**'
+      - '.github/workflows/ep001-voice.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ep001-voice
+  cancel-in-progress: false
+
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Gemini SDK
+        run: python3 -m venv .venv && .venv/bin/pip install -q 'google-genai>=2.25.0'
+      - name: Make voice
+        run: .venv/bin/python -u ep001/make_voice.py 2>&1 | tee run.log
+      - name: Collect
+        if: always()
+        run: mkdir -p ep001_out && cp run.log ep001_out/ || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ep001-voice-part1
+          path: ep001_out/
+          retention-days: 14
+      - name: Push to branch ep001-voice-out
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP="$(mktemp -d)"; cp -r ep001_out/. "$TMP"/; cd "$TMP"
+          git init -q -b ep001-voice-out
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A && git commit -q -m "ep001 voice part1 [skip ci]"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:refs/heads/ep001-voice-out
