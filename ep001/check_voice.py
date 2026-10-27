@@ -2,7 +2,7 @@
 """分けた声を、10行ずつまとめて聞かせて台本と照らし合わせる（呼び出しを少なくする）。→ ep001_out/check.json
 行と行のあいだに短いビープを入れて、Gemini に「n 番目の区間」で書き起こさせる。
 429 のキーは 70 秒休ませて次のキーへ。モデルも順に試す。"""
-import json, os, time, subprocess, tempfile
+import json, os, time
 from pathlib import Path
 from google import genai
 from google.genai import types
@@ -13,20 +13,11 @@ MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
 OUT = HERE.parent / 'ep001_out'; OUT.mkdir(exist_ok=True)
 rest = {}  # key -> 休み終わりの時刻
 print('keys', len(KEYS), flush=True)
-ids = [k for k in SCRIPT if (HERE / 'check' / f'{k}.mp3').exists()]
-groups = [ids[i:i + 10] for i in range(0, len(ids), 10)]
-tmp = Path(tempfile.mkdtemp())
-subprocess.run(['ffmpeg', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=frequency=1000:duration=0.35', '-ar', '24000', '-ac', '1', str(tmp / 'beep.mp3')], check=True)
+groups = json.loads((HERE / 'check' / 'groups.json').read_text())
 res = {}
 call = 0
 for g, grp in enumerate(groups):
-    lst = tmp / f'g{g}.txt'
-    parts = []
-    for lid in grp:
-        parts += [f"file '{(HERE / 'check' / f'{lid}.mp3').resolve()}'", f"file '{(tmp / 'beep.mp3').resolve()}'"]
-    lst.write_text('\n'.join(parts[:-1]))
-    mp3 = tmp / f'g{g}.mp3'
-    subprocess.run(['ffmpeg', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', str(lst), '-ar', '24000', '-ac', '1', '-b:a', '64k', str(mp3)], check=True)
+    mp3 = HERE / 'check' / f'group{g}.mp3'
     numbered = '\n'.join(f'{i + 1}. {SCRIPT[l]}' for i, l in enumerate(grp))
     prompt = (f'この日本語音声は、ピー音で区切られた{len(grp)}個の区間です。1区間ずつ実際に聞いて書き起こし、同じ番号の台本と比べてください。'
               '言葉の追加・省略・語順の入れ替え・言い換え・読み間違いがあれば matched=false、句読点や漢字かな・数字の書き方の違いだけなら matched=true。'
@@ -55,7 +46,7 @@ for g, grp in enumerate(groups):
     for s in got.get('segments', []):
         i = s.get('index', 0) - 1
         if 0 <= i < len(grp): res[grp[i]] = s
-    time.sleep(8)
+    time.sleep(20)
 (OUT / 'check.json').write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding='utf-8')
-for l in ids: print(l, res.get(l))
+for l in [x for grp in groups for x in grp]: print(l, res.get(l))
 print('NG', [k for k, v in res.items() if not v.get('matched', False) or v.get('extra')])
