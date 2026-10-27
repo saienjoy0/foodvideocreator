@@ -33,8 +33,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Gemini SDK
         run: python3 -m venv .venv && .venv/bin/pip install -q 'google-genai>=2.25.0'
-      - name: Make voice
-        run: .venv/bin/python -u ep001/make_voice.py 2>&1 | tee run.log
+      - name: Make voice or check
+        run: |
+          if [ -f ep001/MODE ] && [ "$(cat ep001/MODE)" = "check" ]; then
+            .venv/bin/python -u ep001/check_voice.py 2>&1 | tee run.log
+          else
+            .venv/bin/python -u ep001/make_voice.py 2>&1 | tee run.log
+          fi
       - name: Collect
         if: always()
         run: mkdir -p ep001_out && cp run.log ep001_out/ || true
