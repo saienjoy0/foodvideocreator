@@ -1,0 +1,33 @@
+name: TIC Gemini TTS Model Diagnostic
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-tts-model-diagnostic.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDK
+        run: python -m pip install -q 'google-genai>=2.25.0'
+      - name: List visible Gemini TTS models
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from google import genai
+          client=genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+          models=list(client.models.list())
+          print("TOTAL_VISIBLE_MODELS:",len(models))
+          for m in models:
+              name=getattr(m,"name","")
+              if any(x in name.lower() for x in ("tts","audio","flash")):
+                  print("MODEL",name,"ACTIONS",getattr(m,"supported_actions",None))
+          PY
