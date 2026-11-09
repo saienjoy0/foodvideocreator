@@ -40,7 +40,7 @@ jobs:
               if p.returncode==0:
                   wav=pathlib.Path('voice_outputs')/path.stem/'voice.wav'
                   assert wav.stat().st_size>1000
-                  shutil.copy2(wav,out/'voice.wav')
+                  if wav.resolve() != (out/'voice.wav').resolve(): shutil.copy2(wav,out/'voice.wav')
                   with wave.open(str(out/'voice.wav'),'rb') as w: duration=w.getnframes()/w.getframerate()
                   (out/'manifest.json').write_text(json.dumps({'sdk':'google-genai==2.25.0','model':req['profile']['model'],'voice':'Puck','text':req['text'],'duration':duration},ensure_ascii=False),encoding='utf-8')
                   print('OK duration',duration,flush=True)
