@@ -1,0 +1,49 @@
+name: TIC Kikuka Test Pro TTS Fallback SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-kikuka-pro-tts-fallback-test.yml'
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Gemini SDK pinned
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Test one exact approved line with unused model quota
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os,subprocess,sys,json,pathlib,shutil,wave
+          assert os.environ.get('GEMINI_API_KEY')
+          s='じゃがいもで菊の花！'
+          request=pathlib.Path('voice_requests/kikuka_pro_tts_a01.json')
+          request.parent.mkdir(parents=True,exist_ok=True)
+          request.write_text(json.dumps({'text':s,'profile':{'model':'gemini-2.5-pro-preview-tts','voice_name':'Puck','style':'成人男性。料理Shorts。力強くはっきりと、早口や倍速はしない。原稿のみ読む。'}},ensure_ascii=False))
+          try:
+              p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(request)],capture_output=True,text=True,timeout=170)
+              print('exit',p.returncode,'stdout',p.stdout[-400:],'stderr',p.stderr[-2000:],flush=True)
+              if p.returncode==0:
+                  f=pathlib.Path('voice_outputs/kikuka_pro_tts_a01/voice.wav')
+                  assert f.is_file()
+                  dest=pathlib.Path('voice_outputs/kikuka_pro_tts_test');dest.mkdir(exist_ok=True)
+                  shutil.copyfile(f,dest/'a01.wav')
+              else:raise RuntimeError(p.stderr[-400:])
+          except subprocess.TimeoutExpired:raise RuntimeError('provider timeout 170 seconds')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-kikuka-pro-tts-a01
+          path: voice_outputs/kikuka_pro_tts_test/
+          if-no-files-found: warn
+          retention-days: 30
