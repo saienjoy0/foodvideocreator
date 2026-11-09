@@ -1,0 +1,48 @@
+name: TIC Kikuka Gemini 3.1 REST probe pinned SDK225
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tic-kikuka-short9-rest-31-probe.yml']
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai==2.25.0' requests
+      - name: Generate exact line via documented Gemini 3.1 REST API fallback
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os,requests,pathlib,wave,base64,json
+          text='じゃがいもで菊の花！'
+          prompt='日本語の料理動画向けに、成人男性、明るく力強く自然な速度で読む。絶叫や早口はしない。以下の一文だけを一字一句変えずに読み上げる。\n'+text
+          payload={'model':'gemini-3.1-flash-tts-preview','input':prompt,'response_format':{'type':'audio'},'generation_config':{'speech_config':[{'voice':'Puck'}]}}
+          response=requests.post('https://generativelanguage.googleapis.com/v1beta/interactions',headers={'x-goog-api-key':os.environ['GEMINI_API_KEY'],'Content-Type':'application/json'},json=payload,timeout=65)
+          print('HTTP',response.status_code,'message',(response.text[:500] if response.status_code!=200 else 'AUDIO RESPONDED'))
+          response.raise_for_status()
+          j=response.json()
+          raw=j.get('output_audio',{}).get('data')
+          if not raw:
+              print('RESPONSE_TOP_KEYS',list(j.keys()))
+              raise RuntimeError('Audio missing')
+          data=base64.b64decode(raw)
+          out=pathlib.Path('voice_outputs/kikuka_rest_31');out.mkdir(parents=True,exist_ok=True)
+          with wave.open(str(out/'a01.wav'),'wb') as w:
+              w.setnchannels(1);w.setsampwidth(2);w.setframerate(24000);w.writeframes(data)
+          print('SUCCESS',len(data),'bytes')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-kikuka-rest31-a01
+          path: voice_outputs/kikuka_rest_31/
+          if-no-files-found: warn
+          retention-days: 30
