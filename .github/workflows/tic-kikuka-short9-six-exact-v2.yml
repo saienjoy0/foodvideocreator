@@ -1,0 +1,68 @@
+name: TIC Kikuka Short9 Six Exact Gemini Voice v2
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tic-kikuka-short9-six-exact-v2.yml']
+permissions:
+  contents: read
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        item: [1, 2, 3, 5, 7, 9]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate exact approved Japanese phrase
+        env:
+          LINE_IDX: ${{ matrix.item }}
+        shell: bash
+        run: |
+          python -u - <<'PY'
+          import os, sys, subprocess, json, hashlib, pathlib, wave, time
+          approved=["じゃがいもで菊の花！","四角く切り、四隅を落とす。","割り箸を両脇に置き、底を残して細く切る。","90度回して、もう一度切る。","塩水で花びらを開きやすくし、塩気は洗い流す。","水気を拭いて、でんぷん粉をまぶす。","150度の油で揚げる。","トマトソースをかけたら、","菊の花の完成！"]
+          assert len(approved)==9
+          idx=int(os.environ['LINE_IDX'])
+          line=approved[idx-1]
+          lid=f'a{idx:02d}'
+          output=pathlib.Path('voice_outputs/kikuka_v2');output.mkdir(parents=True,exist_ok=True)
+          style='成人男性の力強く明るい料理Shortsナレーター。熱血系だが絶叫しない。自然な日本語の発音と通常速度。早口化・加速はしない。句読点を含め原稿だけを読み、一切省略・追加・改変しない。'
+          for attempt,(model,limit) in enumerate([('gemini-2.5-flash-preview-tts',55),('gemini-3.1-flash-tts-preview',165),('gemini-3.8-flash-lite-tts',90)],1):
+              request=pathlib.Path('voice_requests')/f'kikuka_short9_v2_{lid}_{attempt}.json'
+              request.parent.mkdir(exist_ok=True)
+              request.write_text(json.dumps({'text':line,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+              print('TRY',lid,model,flush=True)
+              try:
+                  p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(request)],text=True,capture_output=True,timeout=limit)
+              except subprocess.TimeoutExpired:
+                  print('TIMEOUT',lid,model,flush=True);continue
+              if p.returncode:
+                  print('FAIL',lid,model,(p.stderr or p.stdout or '')[-800:],flush=True);continue
+              wav=pathlib.Path('voice_outputs')/request.stem/'voice.wav'
+              if not wav.is_file() or wav.stat().st_size<=1000:continue
+              dst=output/f'{lid}.wav';dst.write_bytes(wav.read_bytes())
+              with wave.open(str(dst)) as w:duration=w.getnframes()/w.getframerate()
+              meta={'id':lid,'text':line,'model':model,'sdk':'google-genai==2.25.0','duration':duration,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()}
+              (output/f'{lid}.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2))
+              print('SUCCESS',lid,model,duration,flush=True)
+              break
+          else:
+              print('ALL FAILED',lid,flush=True)
+              raise RuntimeError('Audio missing '+lid)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-kikuka-short9-v2-${{ matrix.item }}
+          path: voice_outputs/kikuka_v2/
+          if-no-files-found: warn
+          retention-days: 30
