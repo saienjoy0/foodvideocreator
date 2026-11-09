@@ -1,0 +1,65 @@
+name: TIC Paper Plane 08G Natural Onepass SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-paper-plane-08g-natural-onepass-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate 18 approved lines as verbatim natural-speed continuous narration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json,os,pathlib,sys,subprocess,shutil,hashlib,wave
+          source=pathlib.Path('voice_batches/tic_paper_plane_20261110_08g_short_v2.json')
+          request=json.loads(source.read_text(encoding='utf-8'))
+          lines=request['lines'];assert len(lines)==18
+          assert os.environ.get('GEMINI_API_KEY')
+          out=pathlib.Path('voice_outputs/tic_paper_plane_20261110_natural_onepass')
+          out.mkdir(parents=True,exist_ok=True)
+          full='\n'.join(x['text'] for x in lines)
+          profile=dict(request['profile'])
+          profile['style']+=' 全18文の間には自然で短い間を入れ、文章の省略や追加をせず正確に読む。映像に合わせるため無駄な長い沈黙は作らない。'
+          for model in ('gemini-3.8-flash-tts','gemini-3.8-flash-lite-tts','gemini-2.5-flash-preview-tts'):
+              profile['model']=model
+              q=pathlib.Path('voice_requests/tic_paper_plane_20261110_natural_onepass.json')
+              q.write_text(json.dumps({'text':full,'profile':profile},ensure_ascii=False),encoding='utf-8')
+              print('MODEL',model,flush=True)
+              try: p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(q)],capture_output=True,text=True,timeout=170)
+              except subprocess.TimeoutExpired:
+                  print('TIMEOUT',model,flush=True);continue
+              if p.returncode:
+                  print('ERROR',model,(p.stderr or '')[-350:],flush=True);continue
+              wav=pathlib.Path('voice_outputs')/q.stem/'voice.wav'
+              if not wav.exists() or wav.stat().st_size<1000:continue
+              shutil.copy2(wav,out/'full.wav')
+              with wave.open(str(out/'full.wav'),'rb') as w:
+                  dur=w.getnframes()/w.getframerate()
+              meta={'model':model,'sdk':'google-genai==2.25.0','voice':'Puck','text_sha256':hashlib.sha256(full.encode('utf-8')).hexdigest(),'lines':lines,'duration':dur}
+              (out/'manifest.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+              print('SUCCESS',model,dur,flush=True)
+              raise SystemExit(0)
+          raise SystemExit('all model attempts failed')
+          PY
+      - name: Upload voice
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-paper-plane-natural-onepass-sdk225
+          path: voice_outputs/tic_paper_plane_20261110_natural_onepass/
+          if-no-files-found: warn
+          retention-days: 30
