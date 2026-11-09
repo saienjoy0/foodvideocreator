@@ -1,0 +1,81 @@
+name: TIC Cat Oreo Last Six Gemini SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-cat-oreo-last6-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install SDK 2.25.0
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Gemini TTS last six approved clips
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import concurrent.futures,json,os,sys,pathlib,subprocess,hashlib,shutil,wave
+          requests=json.loads(r'''[["a03","砂糖と牛乳を混ぜ、こす。"],["a04","穴を開けて25分蒸す。"],["a06","伸ばして練ると、もちもちに。"],["a09","オレオで挟む。"],["a11","耳とほっぺを色付けて、目と鼻を描く。"],["a13","中はチーズクリーム！"]]''')
+          out=pathlib.Path('voice_outputs/tic_cat_short159_last6');out.mkdir(parents=True,exist_ok=True)
+          keys=list(dict.fromkeys(x.strip() for x in os.environ.get('GEMINI_API_KEYS','').splitlines() if x.strip()))
+          if not keys:keys=[os.environ['GEMINI_API_KEY']]
+          style="成人男性、熱血で明るく力強い日本語料理ナレーター。通常の話速1.0倍で聞き取りやすく、叫ばず、余分な言葉は加えない。文の一字一句を改変しない。"
+          def work(item):
+            i,(lid,text)=item; errs=[]
+            for k,model in enumerate(['gemini-3.8-flash-tts','gemini-3.1-flash-tts-preview','gemini-3.8-flash-lite-tts']):
+              req=pathlib.Path('voice_requests')/f'tic_cat_last6_{lid}_{k}.json'
+              req.write_text(json.dumps({'text':text,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+              try:p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=115,env=dict(os.environ,GEMINI_API_KEY=keys[(i+k)%len(keys)]))
+              except subprocess.TimeoutExpired:errs.append(model+':timeout');continue
+              if p.returncode:errs.append(model+':'+(p.stderr or p.stdout)[-150:]);continue
+              src=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+              if not src.is_file() or src.stat().st_size<1000:errs.append(model+':missing');continue
+              dst=out/f'{lid}.wav';shutil.copy2(src,dst)
+              with wave.open(str(dst),'rb') as w:dur=w.getnframes()/w.getframerate()
+              return {'id':lid,'text':text,'model':model,'duration':dur,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()},None
+            return None,{'id':lid,'errors':errs}
+          man={'sdk':'google-genai==2.25.0','voice':'Puck','expected':requests,'results':[],'failures':[]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+            fs=[ex.submit(work,it) for it in enumerate(requests)]
+            for f in concurrent.futures.as_completed(fs):
+              good,bad=f.result()
+              if good:man['results'].append(good);print('OK',good['id'],good['duration'],flush=True)
+              else:man['failures'].append(bad);print('FAIL',bad['id'],flush=True)
+              man['results'].sort(key=lambda x:x['id'])
+              (out/'manifest.json').write_text(json.dumps(man,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          assert len(man['results'])==6
+          print('SUCCESS SIX',flush=True)
+          PY
+      - name: Upload all generated WAVs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-cat-oreo-last6-sdk225
+          path: voice_outputs/tic_cat_short159_last6/
+          if-no-files-found: error
+          retention-days: 30
