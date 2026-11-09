@@ -1,0 +1,73 @@
+name: TIC Oil Dumplings 08G Four Segments Gemini
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-oil-dumplings-08g-4lines-segments.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Use previously successful Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate four approved segments without changing words
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,json,pathlib,subprocess,sys,concurrent.futures,shutil,wave,traceback
+          assert os.getenv("GEMINI_API_KEY"), "Missing Gemini secret"
+          lines=[
+            "この餃子、タレにつけないって知ってた？",
+            "茹でた餃子に唐辛子をたっぷり！刻んだ薬味も加える。",
+            "そこへ熱い油をジュワッ！餃子の上で直接タレを作る。",
+            "全体を混ぜれば味がしっかり絡む！",
+          ]
+          base=pathlib.Path("voice_outputs/tic_oil_dumplings_4lines_20261109_segments")
+          base.mkdir(parents=True,exist_ok=True)
+          style="日本語のグルメShorts、20〜30代の元気で熱血な成人男性。声は中音〜やや高め、テンション8/10、聞き取りやすく、快活でスピード感あり。驚きは強調、過剰な絶叫をしない。指定された原稿だけを正確に読む。余計な挨拶や説明を足さない。"
+          models=["gemini-3.8-flash-tts","gemini-2.5-flash-preview-tts","gemini-3.8-flash-lite-tts"]
+          def build(i):
+              errors=[]
+              for model in models:
+                  stem=f"tic_oil_dumplings_4line_{i:02d}_{model.replace('-','_')}"
+                  request_path=pathlib.Path("voice_requests")/(stem+".json")
+                  request_path.write_text(json.dumps({"text":lines[i-1],"profile":{"model":model,"voice_name":"Puck","style":style}},ensure_ascii=False,indent=2),encoding="utf-8")
+                  try:
+                      p=subprocess.run([sys.executable,"scripts/run_voice_request.py",str(request_path)],capture_output=True,text=True,timeout=80)
+                      wav=pathlib.Path("voice_outputs")/stem/"voice.wav"
+                      if p.returncode==0 and wav.exists() and wav.stat().st_size>1000:
+                          with wave.open(str(wav),"rb") as w: dur=w.getnframes()/w.getframerate()
+                          shutil.copyfile(wav,base/f"a{i:02d}.wav")
+                          print(f"PASS line {i}, model {model}, {dur:.3f}s",flush=True)
+                          return {"line":i,"status":"ok","model":model,"duration_s":dur,"text":lines[i-1]}
+                      errors.append(f"{model}: {p.stderr[-500:]}")
+                  except subprocess.TimeoutExpired:
+                      errors.append(f"{model}: TIMEOUT 80 seconds")
+                  print(f"attempt line {i} model {model} failed: {errors[-1][-240:]}",flush=True)
+              return {"line":i,"status":"failed","errors":errors,"text":lines[i-1]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+              results=list(pool.map(build,range(1,5)))
+          (base/"manifest.json").write_text(json.dumps({"lines":results},ensure_ascii=False,indent=2),encoding="utf-8")
+          (base/"approved_text.txt").write_text(chr(10).join(lines),encoding="utf-8")
+          if any(x["status"]!="ok" for x in results):
+              raise SystemExit("Not all four segments succeeded")
+          PY
+      - name: Upload generated WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-oil-dumplings-08g-4lines-segments
+          path: voice_outputs/tic_oil_dumplings_4lines_20261109_segments/
+          retention-days: 30
+          if-no-files-found: error
