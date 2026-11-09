@@ -1,0 +1,65 @@
+name: TIC Mouse Fish 08G Rescue SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-mouse-fish-08g-rescue225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai==2.25.0'
+      - name: Gemini TTS approved speech seven clips
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import concurrent.futures, hashlib, json, os, pathlib, shutil, subprocess, sys, wave
+          approved=json.loads(r'''["この魚、揚げたらネズミに変身!?","皮を残して、身だけ細かく切る。","水気を取って粉をまぶす。","油で揚げると、切り込みがパッと開く！","皮でつながっているから崩れず、まるで毛並みに！","油を切って、","耳と目としっぽを付けたら、ネズミそっくり！"]''')
+          style="成人男性、明るく熱血系だが過剰に叫ばない。日本語を明瞭に、テンポよく、原稿の文字を省略・追加・言い換えず読み上げる。"
+          assert os.environ.get('GEMINI_API_KEY')
+          out=pathlib.Path('voice_outputs/tic_mouse_fish_20261110_08g_rescue')
+          out.mkdir(parents=True,exist_ok=True)
+          def run(item):
+              i,s=item; lid=f'a{i:02d}'
+              errs=[]
+              for k,model in enumerate(['gemini-2.5-flash-preview-tts','gemini-3.1-flash-tts-preview','gemini-3.8-flash-lite-tts'],1):
+                  req=pathlib.Path('voice_requests')/f'tic_mouse_20261110_rescue_{lid}_{k}.json'
+                  req.write_text(json.dumps({'text':s,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+                  try: p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=90)
+                  except subprocess.TimeoutExpired: errs.append(f'{model}:timeout'); continue
+                  if p.returncode: errs.append(f'{model}:{(p.stderr or p.stdout)[-300:]}'); continue
+                  src=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                  if not src.exists() or src.stat().st_size<1000: errs.append(f'{model}:missing');continue
+                  dst=out/f'{lid}.wav';shutil.copy2(src,dst)
+                  with wave.open(str(dst),'rb') as w:dur=w.getnframes()/w.getframerate();sr=w.getframerate();ch=w.getnchannels()
+                  return {'id':lid,'text':s,'duration_sec':round(dur,6),'sample_rate':sr,'channels':ch,'model':model,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()},None
+              return None,{'id':lid,'failures':errs}
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','approved_lines':approved,'approved_sha256':hashlib.sha256('\n'.join(approved).encode('utf-8')).hexdigest(),'lines':[],'failures':[]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as exe:
+              ff=[exe.submit(run,item) for item in enumerate(approved,1)]
+              for future in concurrent.futures.as_completed(ff):
+                  good,bad=future.result()
+                  if good: manifest['lines'].append(good); print('OK',good['id'],good['model'],flush=True)
+                  else: manifest['failures'].append(bad);print('FAIL',json.dumps(bad,ensure_ascii=False),flush=True)
+                  manifest['lines'].sort(key=lambda x:x['id'])
+                  (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          assert [x['id'] for x in manifest['lines']]==[f'a{i:02d}' for i in range(1,8)],'incomplete audio'
+          print('SUCCESS all seven',flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-mouse-fish-08g-rescue225
+          path: voice_outputs/tic_mouse_fish_20261110_08g_rescue/
+          if-no-files-found: error
+          retention-days: 30
