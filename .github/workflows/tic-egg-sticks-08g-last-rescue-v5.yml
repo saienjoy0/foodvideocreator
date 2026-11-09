@@ -1,0 +1,71 @@
+name: TIC Egg Sticks 08G Last Rescue 4 Natural v5
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-egg-sticks-08g-last-rescue-v5.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 26
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin google-genai exactly 2.25.0
+        run: python -m pip install -q 'google-genai==2.25.0'
+      - name: Retry only four missing natural Puck lines with longer timeouts
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p voice_outputs/tic_egg_sticks_20261110_last_v5
+          python -u - <<'PY' 2>&1 | tee voice_outputs/tic_egg_sticks_20261110_last_v5/run.log
+          import concurrent.futures as cf,hashlib,json,os,pathlib,subprocess,sys,time,wave
+          req=json.loads(pathlib.Path('voice_batches/tic_egg_sticks_20261110_natural_short_v2.json').read_text(encoding='utf-8'))
+          needed=['a03','a04','a10','a11']
+          rows=[x for x in req['lines'] if x['id'] in needed]
+          out=pathlib.Path('voice_outputs/tic_egg_sticks_20261110_last_v5')
+          out.mkdir(parents=True,exist_ok=True)
+          assert len(rows)==4 and req['profile']['voice_name']=='Puck'
+          profile=dict(req['profile'])
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','natural_speed':True,'atempo_applied':False,'lines':[],'failed':[]}
+          def render(row):
+            lid=row['id']
+            errors=[]
+            for model,limit in [('gemini-3.1-flash-tts-preview',195),('gemini-3.8-flash-lite-tts',195),('gemini-3.8-flash-tts',195)]:
+              payload={'text':row['text'],'profile':dict(profile,model=model),'output_path':str((out/(lid+'.wav')).resolve())}
+              try:
+                p=subprocess.run([sys.executable,'examples/gemini_voice_command.py'],input=json.dumps(payload,ensure_ascii=False),text=True,capture_output=True,timeout=limit)
+                if p.returncode:raise RuntimeError(p.stderr[-250:])
+                w=out/(lid+'.wav')
+                if not w.exists() or w.stat().st_size<1500:raise RuntimeError('WAV not saved')
+                with wave.open(str(w),'rb') as f: secs=f.getnframes()/f.getframerate();sr=f.getframerate()
+                return {'id':lid,'text':row['text'],'model':model,'duration':round(secs,6),'rate':sr,'sha256':hashlib.sha256(w.read_bytes()).hexdigest()},None
+              except Exception as e:
+                errors.append(f'{model}:{type(e).__name__}:{str(e)[-220:]}')
+                (out/(lid+'.wav')).unlink(missing_ok=True)
+            return None,{'id':lid,'errors':errors}
+          with cf.ThreadPoolExecutor(max_workers=2) as pool:
+            fs=[pool.submit(render,row) for row in rows]
+            for f in cf.as_completed(fs):
+              good,bad=f.result()
+              if good:manifest['lines'].append(good);print('SUCCESS_LINE',good['id'],good['model'],flush=True)
+              else:manifest['failed'].append(bad);print('FAIL',bad,flush=True)
+              (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          if len(manifest['lines'])!=4:raise SystemExit('Generated only '+str(len(manifest['lines']))+' of 4 missing')
+          print('SUCCESS 4/4',flush=True)
+          PY
+      - name: Upload successful WAVs even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-egg-sticks-last-four-v5
+          path: voice_outputs/tic_egg_sticks_20261110_last_v5/
+          retention-days: 30
+          if-no-files-found: error
