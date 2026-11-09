@@ -1,0 +1,48 @@
+name: TIC 08G Gemini TTS Recovery Models
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-08g-recovery-models.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Gemini SDK
+        run: python -m pip install -q 'google-genai>=2.25.0'
+      - name: Generate approved narration with alternative Gemini TTS
+        run: python -u scripts/tic_oil_dumplings_tts_recovery.py
+      - name: Upload audio and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-oil-dumplings-20261109-08g-recovery
+          path: voice_outputs/tic_oil_dumplings_20261109_tts_recovery/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Publish diagnostics for inspection
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE="voice_outputs/tic_oil_dumplings_20261109_tts_recovery/diagnostics.json"
+          if [[ -f "$SOURCE" ]]; then
+            mkdir -p voice_results
+            cp "$SOURCE" voice_results/tic_oil_dumplings_20261109_tts_recovery.json
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add voice_results/tic_oil_dumplings_20261109_tts_recovery.json
+            git diff --cached --quiet || git commit -m "diagnostics: tic oil dumplings 08G [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
