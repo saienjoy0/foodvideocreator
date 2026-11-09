@@ -1,0 +1,32 @@
+[
+  {
+    "model": "gemini-3.8-flash-lite-tts",
+    "interface": "v38",
+    "status": "error",
+    "error": "NotFoundError: Error code: 404 - {'error': {'message': \"Model 'gemini-3.8-flash-lite-tts' not found. Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models\", 'code': 'not_found'}}"
+  },
+  {
+    "model": "gemini-3.1-flash-tts-preview",
+    "interface": "interactions",
+    "status": "error",
+    "error": "NotFoundError: Error code: 404 - {'error': {'message': \"Model 'gemini-3.1-flash-tts-preview' not found. Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models\", 'code': 'not_found'}}"
+  },
+  {
+    "model": "gemini-2.5-flash-preview-tts",
+    "interface": "legacy",
+    "status": "error",
+    "error": "ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Invalid JSON payload received. Unknown name \"speechConfig\" at \\'generation_config\\': Cannot find field.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.BadRequest', 'fieldViolations': [{'field': 'generation_config', 'description': 'Invalid JSON payload received. Unknown name \"speechConfig\" at \\'generation_config\\': Cannot find field.'}]}]}}"
+  },
+  {
+    "model": "gemini-2.5-pro-preview-tts",
+    "interface": "legacy",
+    "status": "error",
+    "error": "ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Invalid JSON payload received. Unknown name \"speechConfig\" at \\'generation_config\\': Cannot find field.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.BadRequest', 'fieldViolations': [{'field': 'generation_config', 'description': 'Invalid JSON payload received. Unknown name \"speechConfig\" at \\'generation_config\\': Cannot find field.'}]}]}}"
+  },
+  {
+    "model": "gemini-2.5-flash-preview-tts",
+    "interface": "interactions",
+    "status": "error",
+    "error": "NotFoundError: Error code: 404 - {'error': {'message': \"Model 'gemini-2.5-flash-preview-tts' not found. Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models\", 'code': 'not_found'}}"
+  }
+]
