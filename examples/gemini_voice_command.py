@@ -113,7 +113,25 @@ def main() -> None:
 
     try:
         client = genai.Client(api_key=api_key)
-        if model in CURRENT_TTS_MODELS:
+        if model == "gemini-3.1-flash-tts-preview":
+            # Google Gemini TTS 3.1 uses the Interactions API with a list speech_config.
+            # Keep the approved speech itself separate from the style directions.
+            prompt = (
+                f"Read the following Japanese dialogue only, in the specified style. "
+                f"Do not speak the instructions; do not add, omit or rephrase any of the text.\\n"
+                f"Voice direction: {style}\\n"
+                f"Exact dialogue to speak:\\n{text}"
+            )
+            interaction = client.interactions.create(
+                model=model,
+                input=prompt,
+                response_format={"type": "audio"},
+                generation_config={"speech_config": [{"voice": voice}]},
+            )
+            data = interaction.output_audio.data
+            audio = base64.b64decode(data) if isinstance(data, str) else bytes(data)
+            mime_type = "audio/L16;rate=24000"
+        elif model in CURRENT_TTS_MODELS:
             # Gemini 3.8 reads text verbatim; delivery belongs in speech_metadata.
             interaction = client.interactions.create(
                 model=model,
