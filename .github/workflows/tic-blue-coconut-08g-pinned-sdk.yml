@@ -1,0 +1,74 @@
+name: TIC Blue Coconut 08G Gemini TTS Pinned SDK
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-blue-coconut-08g-pinned-sdk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin successful Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Synthesize twelve approved lines with Puck
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, pathlib, subprocess, sys, wave, shutil, time
+          src = pathlib.Path('tic_requests/tic_blue_coconut_20261110_08g.json')
+          req = json.loads(src.read_text(encoding='utf-8'))
+          approved = ["透明な青いゼリーの中に、真っ白なお菓子が閉じ込められている！","外はぷるぷる、中はもちもち。中心からはココナッツクリーム！","クリームチーズに粉砂糖を混ぜたら、","ココナッツオイル、ココナッツミルク、生クリームを加える。","小さな型に絞り入れ、一晩冷凍。固めておくと包みやすい。","続いて山芋を蒸して、やわらかくなったらしっかりつぶす。","加熱済みのもち米粉を混ぜて、手で包めるやわらかい生地にまとめる。","生地の半分をバタフライピーで青く染め、白い生地と重ねる。","そこへ凍らせたクリームを置き、二色の生地で丁寧に包み込む。","ココナッツウォーターにゼリー用の粉を加えて、沸騰するまで温める。","型に包んだ山芋のお菓子を入れ、透明なゼリー液をそっと注ぐ。","冷蔵庫で冷やし固めたら完成！"]
+          assert [v['text'] for v in req['lines']] == approved, 'Approved transcript mismatch'
+          assert [v['id'] for v in req['lines']] == [f'a{i:02d}' for i in range(1,13)], 'Line id mismatch'
+          assert req['profile']['voice_name'] == 'Puck', 'Voice mismatch'
+          assert os.getenv('GEMINI_API_KEY'), 'Missing GitHub secret'
+          out = pathlib.Path('voice_outputs/tic_blue_coconut_20261110_pinned_sdk')
+          out.mkdir(parents=True, exist_ok=True)
+          profile = dict(req['profile'])
+          profile['model'] = 'gemini-3.8-flash-tts'
+          manifest = {'sdk':'google-genai==2.25.0','model':profile['model'],'voice':profile['voice_name'],'lines':[]}
+          for row in req['lines']:
+              lid = row['id']
+              temp = pathlib.Path('voice_requests') / f'tic_blue_coconut_20261110_pinned_{lid}.json'
+              temp.write_text(json.dumps({'text':row['text'],'profile':profile}, ensure_ascii=False, indent=2), encoding='utf-8')
+              error = ''
+              for attempt in range(1,4):
+                  p = subprocess.run([sys.executable,'scripts/run_voice_request.py',str(temp)],capture_output=True,text=True,timeout=180)
+                  if p.returncode == 0:
+                      generated = pathlib.Path('voice_outputs') / temp.stem / 'voice.wav'
+                      assert generated.exists() and generated.stat().st_size > 1000, 'WAV not found'
+                      shutil.copy2(generated, out / f'{lid}.wav')
+                      with wave.open(str(out / f'{lid}.wav'),'rb') as w:
+                          dur=w.getnframes()/w.getframerate()
+                          meta={'id':lid,'text':row['text'],'duration':round(dur,5),'rate':w.getframerate(),'channels':w.getnchannels(),'bytes':generated.stat().st_size}
+                      manifest['lines'].append(meta)
+                      (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                      print(f'OK {lid}: {dur:.3f}s WAV {meta["bytes"]} bytes',flush=True)
+                      break
+                  error = p.stderr[-750:]
+                  print(f'FAILED {lid} attempt {attempt}: {error}',flush=True)
+                  if attempt < 3: time.sleep(3*attempt)
+              else:
+                  raise SystemExit(f'TTS failed at {lid}: {error}')
+          assert len(manifest['lines']) == 12, 'missing outputs'
+          print('SUCCESS all 12 WAV files',flush=True)
+          PY
+      - name: Upload twelve WAV files and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-blue-coconut-08g-sdk2250
+          path: voice_outputs/tic_blue_coconut_20261110_pinned_sdk/
+          if-no-files-found: error
+          retention-days: 30
