@@ -1,0 +1,70 @@
+name: TIC Squid Lion 08G Last Two Retry SDK225
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tic-squid-lion-08g-last-two-retry.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    strategy:
+      fail-fast: false
+      matrix:
+        index: [2,6]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SEGMENT_ID: ${{ matrix.index }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned google-genai SDK
+        run: python -m pip install -q 'google-genai==2.25.0'
+      - name: Exact approved Japanese Gemini voice
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import os,sys,subprocess,pathlib,json,hashlib,shutil,time,wave
+          approved=["イカが獅子舞に！？","細かく切れ目を入れ、","向きを変えて格子模様に。","細長く切って、鍋へ。","熱で縮み、模様が開く！","厄を払い、福を呼ぶ獅子舞！"]
+          i=int(os.environ['SEGMENT_ID']); assert i in [2,6]
+          s=approved[i-1]; id=f"s{i:02d}"
+          out=pathlib.Path('voice_outputs')/f'tic_squid_lion_last_two_retry_{id}';out.mkdir(parents=True,exist_ok=True)
+          style="明るく力強く、自然な話速の成人男性日本語ナレーション。過剰な絶叫や早口、語句の追加や省略をせず、この原稿だけ読む。"
+          manifest={'index':i,'text':s,'sdk':'google-genai==2.25.0','voice':'Puck','success':False,'attempts':[]}
+          for attempt,(model,timeout) in enumerate([('gemini-3.8-flash-lite-tts',185),('gemini-3.1-flash-tts-preview',60),('gemini-3.8-flash-lite-tts',160),('gemini-3.1-flash-tts-preview',60),('gemini-3.8-flash-tts',140)],1):
+            req=pathlib.Path('voice_requests')/f'tic_squid_lion_last_two_retry_req_{id}_{attempt}.json'
+            req.write_text(json.dumps({'text':s,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+            try:
+              p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=timeout)
+              wav=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+              if p.returncode==0 and wav.is_file() and wav.stat().st_size>1500:
+                dest=out/f'{id}.wav';shutil.copyfile(wav,dest)
+                with wave.open(str(dest),'rb') as w:dur=w.getnframes()/w.getframerate()
+                manifest.update(success=True,model=model,duration_sec=dur,wav_sha256=hashlib.sha256(dest.read_bytes()).hexdigest())
+                manifest['attempts'].append({'model':model,'ok':True,'duration':dur})
+                print('SUCCESS',id,model,dur,flush=True)
+                break
+              err=(p.stderr or p.stdout or 'no-audio')[-350:]
+            except subprocess.TimeoutExpired:err='timeout-'+str(timeout)
+            except Exception as e:err=type(e).__name__+':'+str(e)[-220:]
+            print('FAILED',id,attempt,model,err[-180:],flush=True)
+            manifest['attempts'].append({'model':model,'error':err})
+            (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+            time.sleep(2)
+          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+          assert manifest['success'],id+' still has no WAV'
+          
+          PY
+      - name: Preserve generated WAV and metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-squid-lion-08g-last-two-retry-s${{ matrix.index }}
+          path: voice_outputs/tic_squid_lion_last_two_retry_s0${{ matrix.index }}/
+          if-no-files-found: warn
+          retention-days: 30
