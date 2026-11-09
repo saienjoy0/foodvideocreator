@@ -1,0 +1,97 @@
+name: TIC Paper Plane 08G Natural Rescue SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-paper-plane-08g-natural-rescue-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned SDK
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install -q 'google-genai==2.25.0'
+      - name: Synthesize approved 18 lines with bounded fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          .venv/bin/python -u - <<'PY'
+          import concurrent.futures, hashlib, json, os, pathlib, subprocess, sys, wave
+          src=pathlib.Path('voice_batches/tic_paper_plane_20261110_08g_short_v2.json')
+          request=json.loads(src.read_text(encoding='utf-8'))
+          lines=request['lines']; assert len(lines)==18
+          assert os.environ.get('GEMINI_API_KEY')
+          dest=pathlib.Path('voice_outputs/tic_paper_plane_20261110_natural_rescue')
+          dest.mkdir(parents=True,exist_ok=True)
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','approved_sha256':hashlib.sha256(('\n'.join(t['text'] for t in lines)).encode()).hexdigest(),'lines':[],'failed':[]}
+          def generate(line):
+              lid=line['id']; txt=line['text']; errors=[]
+              for model in ('gemini-3.8-flash-lite-tts','gemini-2.5-flash-preview-tts','gemini-3.8-flash-tts'):
+                  out=dest/(lid+'.wav')
+                  profile=dict(request['profile'],model=model)
+                  arg={'text':txt,'output_path':str(out.resolve()),'profile':profile}
+                  try:
+                      p=subprocess.run([sys.executable,'examples/gemini_voice_command.py'],input=json.dumps(arg,ensure_ascii=False),text=True,capture_output=True,timeout=105)
+                  except subprocess.TimeoutExpired:
+                      errors.append(model+':timeout105s');continue
+                  if p.returncode:
+                      errors.append(model+':'+(p.stderr or '')[-180:]);continue
+                  if not out.exists() or out.stat().st_size<1000:
+                      errors.append(model+':empty');continue
+                  try:
+                      with wave.open(str(out),'rb') as wf:
+                          duration=wf.getnframes()/wf.getframerate()
+                          sample_rate=wf.getframerate()
+                  except Exception as err:
+                      errors.append(model+':invalid wav '+str(err));continue
+                  return {'id':lid,'text':txt,'model':model,'duration':duration,'sample_rate':sample_rate,'size':out.stat().st_size,'sha256':hashlib.sha256(out.read_bytes()).hexdigest()},None
+              return None,{'id':lid,'errors':errors}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+              fs=[pool.submit(generate,line) for line in lines]
+              for future in concurrent.futures.as_completed(fs):
+                  good,bad=future.result()
+                  if good:
+                      manifest['lines'].append(good)
+                      print('SUCCESS',good['id'],good['model'],round(good['duration'],2),flush=True)
+                  else:
+                      manifest['failed'].append(bad)
+                      print('FAILED',bad['id'],flush=True)
+                  manifest['lines'].sort(key=lambda x:x['id'])
+                  (dest/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('DONE',len(manifest['lines']),'/',len(lines),flush=True)
+          assert len(manifest['lines'])==len(lines),'Not all 18 audio clips generated'
+          PY
+      - name: Upload WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-plane-08g-natural-rescue-sdk225
+          path: voice_outputs/tic_paper_plane_20261110_natural_rescue/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Publish audio branch
+        if: always()
+        shell: bash
+        env:
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: |
+          set -euo pipefail
+          SOURCE=voice_outputs/tic_paper_plane_20261110_natural_rescue
+          test -d "$SOURCE" || exit 0
+          TMP="$(mktemp -d)"
+          cp -a "$SOURCE"/. "$TMP"/
+          cd "$TMP"
+          git init -q -b paper-plane-voice
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -q -m 'paper plane generated speech [skip ci]'
+          git push -q -f "$PUSH_URL" HEAD:refs/heads/voice-out/tic_paper_plane_20261110_natural_rescue
