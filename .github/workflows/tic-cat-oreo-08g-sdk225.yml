@@ -1,0 +1,93 @@
+name: TIC Cat Oreo 08G Gemini Puck SDK 2.25.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-cat-oreo-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned successful SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate 13 exact approved lines with Puck
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json, os, pathlib, subprocess, sys, shutil, wave, time, hashlib
+          approved=json.loads(r'''["オレオに猫が挟まってる!? 実はこれ、もちもちの猫型スイーツ。","もち米粉にコーンスターチを混ぜて、食感を調整。砂糖と牛乳も加える。","よく混ぜたら、ざるでこしてダマを取る。","ラップに穴を開け、沸騰した蒸し器で約25分蒸す。","熱いうちにバターを加えて、","びよーんと引っ張りながら、つやが出るまでしっかり練る。","チーズクリームを小さく分けて冷凍。固めると包みやすい。","もち生地を広げ、凍らせたクリームを包んで、丸く形を整える。","オレオで上下から挟んだら、","ちょこんと猫耳をつけて、","耳をほんのり色づけ、目と鼻を描く。ほっぺも赤くしたら、","オレオの間から猫の顔がのぞく。かわいい猫大福が完成！","かじれば、中はつぶつぶ入りのチーズクリーム！"]''')
+          profile=json.loads(r'''{"model":"gemini-3.8-flash-tts","voice_name":"Puck","style":"成人男性の日本語YouTube Shorts料理ナレーター。明るく力強い熱血系でエネルギッシュ。親しみやすく、食欲とワクワク感が伝わる。歯切れよく聞き取りやすい発音。各文は場面ごとに独立して読み、短い尺に自然に収める。無駄な間、絶叫、早口すぎる発話は避ける。承認済み原稿の言葉、句読点、順序を一文字も変更せず読み、追加や省略をしない。"}''')
+          assert len(approved)==13 and profile['voice_name']=='Puck'
+          assert os.getenv('GEMINI_API_KEY'), 'Missing Gemini API key in repository secrets'
+          out=pathlib.Path('voice_outputs/tic_cat_oreo_20261110_08g_sdk225')
+          out.mkdir(parents=True,exist_ok=True)
+          (out/'approved_script.txt').write_text('\n'.join(approved)+'\n',encoding='utf-8')
+          manifest={'sdk':'google-genai==2.25.0','model':profile['model'],'voice':profile['voice_name'],'text_sha256':hashlib.sha256('\n'.join(approved).encode()).hexdigest(),'lines':[]}
+          for idx,script in enumerate(approved,1):
+              lid=f'a{idx:02d}'
+              req=pathlib.Path('voice_requests')/f'tic_cat_oreo_20261110_sdk225_{lid}.json'
+              req.write_text(json.dumps({'text':script,'profile':profile},ensure_ascii=False),encoding='utf-8')
+              for attempt in range(1,4):
+                  try:
+                      p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=250)
+                  except subprocess.TimeoutExpired:
+                      print(f'TIMEOUT {lid} attempt {attempt}',flush=True)
+                      continue
+                  if p.returncode==0:
+                      gen=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                      if gen.is_file() and gen.stat().st_size>1000:
+                          shutil.copy2(gen,out/f'{lid}.wav')
+                          with wave.open(str(out/f'{lid}.wav'),'rb') as w:
+                              duration=w.getnframes()/w.getframerate()
+                              meta={'id':lid,'text':script,'duration':round(duration,5),'rate':w.getframerate(),'channels':w.getnchannels(),'bytes':gen.stat().st_size}
+                          manifest['lines'].append(meta)
+                          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                          print(f'OK {lid} {duration:.3f}s',flush=True)
+                          break
+                  print(f'FAILED {lid} attempt {attempt}: {(p.stderr or "")[-650:]}',flush=True)
+                  time.sleep(attempt*4)
+              else:
+                  raise SystemExit(f'TTS generation failed {lid}')
+          assert len(manifest['lines'])==len(approved)
+          print('ALL 13 WAV GENERATED',flush=True)
+          PY
+      - name: Upload 13 WAV and manifest
+        if: always()
+        id: wavs
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-cat-oreo-08g-sdk225
+          path: voice_outputs/tic_cat_oreo_20261110_08g_sdk225/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish successful run pointer
+        if: success()
+        shell: bash
+        env:
+          ARTIFACT_ID: ${{ steps.wavs.outputs.artifact-id }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p voice_results
+          python - <<'PY'
+          import os,json,pathlib
+          v={'status':'completed','workflow_run_id':int(os.environ['RUN_ID']),'artifact_id':int(os.environ['ARTIFACT_ID']),'artifact_name':'tic-cat-oreo-08g-sdk225','sdk':'google-genai==2.25.0','model':'gemini-3.8-flash-tts','voice':'Puck'}
+          pathlib.Path('voice_results/tic_cat_oreo_20261110_08g_sdk225.json').write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add voice_results/tic_cat_oreo_20261110_08g_sdk225.json
+          git commit -m 'voice result: tic cat oreo 08g [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
