@@ -1,0 +1,7 @@
+{
+  "a01": "Gemini TTS generation failed: NotFoundError: Error code: 404 - {'error': {'message': \"Model 'gemini-3.1-flash-tts-preview' not found. Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models\", 'code': 'not_found'}}",
+  "a02": "Gemini TTS generation failed: NotFoundError: Error code: 404 - {'error': {'message': \"Model 'gemini-3.1-flash-tts-preview' not found. Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models\", 'code': 'not_found'}}",
+  "a03": "Gemini TTS generation failed: NotFoundError: Error code: 404 - {'error': {'message': \"Model 'gemini-3.1-flash-tts-preview' not found. Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models\", 'code': 'not_found'}}",
+  "a04": "Gemini TTS generation failed: NotFoundError: Error code: 404 - {'error': {'message': \"Model 'gemini-3.1-flash-tts-preview' not found. Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models\", 'code': 'not_found'}}",
+  "a05": "Gemini TTS generation failed: NotFoundError: Error code: 404 - {'error': {'message': \"Model 'gemini-3.1-flash-tts-preview' not found. Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models\", 'code': 'not_found'}}"
+}
