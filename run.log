@@ -1,0 +1,39 @@
+keys: 1
+timeout a01 #1
+timeout a01 #2
+timeout a01 #3
+timeout a01 #4
+timeout a01 #5
+timeout a01 #6
+timeout a01 #7
+FAILED a01: timeout 180s
+timeout a02 #1
+timeout a02 #2
+timeout a02 #3
+timeout a02 #4
+timeout a02 #5
+timeout a02 #6
+timeout a02 #7
+FAILED a02: timeout 180s
+timeout a03 #1
+ok 3/18 a03 2.60s key#1
+ok 4/18 a04 2.32s key#1
+ok 5/18 a05 3.32s key#1
+ok 6/18 a06 2.44s key#1
+ok 7/18 a07 3.16s key#1
+ok 8/18 a08 2.04s key#1
+ok 9/18 a09 1.60s key#1
+ok 10/18 a10 3.52s key#1
+ok 11/18 a11 2.96s key#1
+ok 12/18 a12 1.88s key#1
+remote: 
+remote: Create a pull request for 'voice-out/tic_paper_plane_20261110_08g_short_v2' on GitHub by visiting:        
+remote:      https://github.com/saienjoy0/foodvideocreator/pull/new/voice-out/tic_paper_plane_20261110_08g_short_v2        
+remote: 
+ok 13/18 a13 2.20s key#1
+ok 14/18 a14 3.68s key#1
+ok 15/18 a15 3.80s key#1
+ok 16/18 a16 2.20s key#1
+ok 17/18 a17 2.64s key#1
+ok 18/18 a18 2.60s key#1
+done: 16 ok, 2 failed
