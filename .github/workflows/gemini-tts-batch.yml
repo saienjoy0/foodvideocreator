@@ -69,7 +69,7 @@ jobs:
         timeout-minutes: 5
         run: |
           mkdir -p voice_outputs
-          { python3 --version; python3 -m venv .venv && .venv/bin/pip install -q 'google-genai>=2.25.0' && echo "sdk ok"; } 2>&1 | tee -a voice_outputs/install.log
+          { python3 --version; python3 -m venv .venv && .venv/bin/pip install -q 'google-genai==2.25.0' && echo "sdk ok"; } 2>&1 | tee -a voice_outputs/install.log
           test -x .venv/bin/python
       - name: Check secret
         run: test -n "${GEMINI_API_KEY:-}" || { echo "GEMINI_API_KEY is missing" >&2; exit 2; }
