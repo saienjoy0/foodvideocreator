@@ -1,0 +1,86 @@
+name: TIC Chrysanthemum Potato 08G Rescue Pinned SDK
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-kikuka-potato-08g-rescue-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rescue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin proven Gemini SDK 2.25.0
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate only missing lines 03-11 with controlled retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import os,json,hashlib,pathlib,subprocess,sys,shutil,time,wave
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          all_lines=json.loads("[\"じゃがいもで、菊の花を作る！\",\"まずは四角く切って、\",\"四隅も落として形を整える。\",\"割り箸を両脇に置き、底を切り離さないよう細かく切り込みを入れる。\",\"90度回して、反対方向にも切る。根元がつながった、細い花びらができる。\",\"塩水で柔らかくして、花びらを開きやすくする。塩気は水で洗い流す。\",\"水分をよく拭き取り、\",\"でんぷん粉を全体にまぶす。\",\"150度の油で、形を崩さず揚げる。\",\"トマトソースをかけたら、\",\"菊の花みたいなじゃがいもの完成！\"]")
+          style=json.loads("\"日本語料理YouTube Shortsの成人男性ナレーター。熱血で力強く明るい、聞き取りやすくテンポの速い中音。過剰に叫ばない。90度は『きゅうじゅうど』、150度は『ひゃくごじゅうど』と明瞭に発音する。承認原稿の字句・句読点・順番を一切変えず、本文以外は発話しない。\"")
+          assert os.getenv('GEMINI_API_KEY') and len(all_lines)==11
+          output=pathlib.Path('voice_outputs/tic_kikuka_potato_20261110_rescue')
+          output.mkdir(parents=True,exist_ok=True)
+          (output/'approved_script.txt').write_text('\n'.join(all_lines)+'\n',encoding='utf-8')
+          digest=hashlib.sha256('\n'.join(all_lines).encode('utf-8')).hexdigest()
+          def gen(idx):
+              txt=all_lines[idx-1]
+              lid=f'a{idx:02d}'
+              errors=[]
+              attempts=[('gemini-3.8-flash-tts',70),('gemini-3.8-flash-tts',70),('gemini-3.1-flash-tts-preview',90)]
+              for trial,(model,timeout) in enumerate(attempts,1):
+                  req=pathlib.Path('voice_requests')/f'tic_kikuka_potato_rescue_{lid}_{trial}.json'
+                  profile={'voice_name':'Puck','model':model,'style':style}
+                  req.write_text(json.dumps({'text':txt,'profile':profile},ensure_ascii=False),encoding='utf-8')
+                  try:
+                      p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=timeout)
+                  except subprocess.TimeoutExpired:
+                      errors.append(f'{model} timeout={timeout}')
+                      print(f'TIMEOUT {lid} {model} trial={trial}',flush=True)
+                      continue
+                  if p.returncode==0:
+                      src=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                      if src.is_file() and src.stat().st_size>1000:
+                          shutil.copy2(src,output/f'{lid}.wav')
+                          with wave.open(str(output/f'{lid}.wav'),'rb') as w:
+                              duration=w.getnframes()/w.getframerate()
+                          print(f'OK {lid} {model} {duration:.3f}s',flush=True)
+                          return {'id':lid,'text':txt,'model':model,'duration_sec':round(duration,6),'bytes':src.stat().st_size}
+                  err=(p.stderr or '')[-380:]
+                  errors.append(f'{model} error={err}')
+                  print(f'FAILED {lid} model={model} trial={trial}: {err}',flush=True)
+                  time.sleep(2)
+              return {'id':lid,'failed':True,'errors':errors}
+          manifest={'sdk':'google-genai==2.25.0','voice_name':'Puck','text_sha256':digest,'lines':[],'failed':[]}
+          with ThreadPoolExecutor(max_workers=3) as pool:
+              futures={pool.submit(gen,i):i for i in range(3,12)}
+              for future in as_completed(futures):
+                  result=future.result()
+                  if result.get('failed'):
+                      manifest['failed'].append(result)
+                  else:
+                      manifest['lines'].append(result)
+                  (output/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          if manifest['failed'] or len(manifest['lines'])!=9:
+              raise SystemExit('RESCUE INCOMPLETE missing '+','.join(e['id'] for e in manifest['failed']))
+          print('SUCCESS ALL NINE MISSING WAVS GENERATED',flush=True)
+          PY
+      - name: Upload WAVs and partial manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-kikuka-potato-08g-rescue-sdk225
+          path: voice_outputs/tic_kikuka_potato_20261110_rescue/
+          if-no-files-found: error
+          retention-days: 30
