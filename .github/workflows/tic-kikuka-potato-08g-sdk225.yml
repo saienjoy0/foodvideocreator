@@ -1,0 +1,73 @@
+name: TIC Chrysanthemum Potato 08G Gemini SDK 2.25.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-kikuka-potato-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned successful Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate exactly eleven approved lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json, os, pathlib, subprocess, sys, shutil, wave, time, hashlib
+          approved=json.loads("[\"じゃがいもで、菊の花を作る！\",\"まずは四角く切って、\",\"四隅も落として形を整える。\",\"割り箸を両脇に置き、底を切り離さないよう細かく切り込みを入れる。\",\"90度回して、反対方向にも切る。根元がつながった、細い花びらができる。\",\"塩水で柔らかくして、花びらを開きやすくする。塩気は水で洗い流す。\",\"水分をよく拭き取り、\",\"でんぷん粉を全体にまぶす。\",\"150度の油で、形を崩さず揚げる。\",\"トマトソースをかけたら、\",\"菊の花みたいなじゃがいもの完成！\"]")
+          profile=json.loads("{\"model\":\"gemini-3.8-flash-tts\",\"voice_name\":\"Puck\",\"style\":\"日本語料理YouTube Shortsの成人男性ナレーター。熱血で力強く、明るくエネルギッシュ、説得力のある中音域。聞き取りやすく、歯切れよく、かなりテンポ良く、句読点の間は短めに読む。じゃがいもが菊の花に変わる楽しさと驚きを伝える。過剰に叫ばず自然な抑揚。90度は『きゅうじゅうど』、150度は『ひゃくごじゅうど』と明瞭に発音。承認された各行の文章・句読点・順番を一切変えず、本文以外は発話しない。\"}")
+          assert len(approved)==11 and profile['voice_name']=='Puck'
+          assert os.getenv('GEMINI_API_KEY'), 'GitHub secret GEMINI_API_KEY is missing'
+          root=pathlib.Path('voice_outputs/tic_kikuka_potato_20261110_sdk225')
+          root.mkdir(parents=True,exist_ok=True)
+          (root/'approved_script.txt').write_text('\n'.join(approved)+'\n',encoding='utf-8')
+          manifest={'sdk':'google-genai==2.25.0','model':profile['model'],'voice_name':profile['voice_name'],'style':profile['style'],'text_sha256':hashlib.sha256('\n'.join(approved).encode('utf-8')).hexdigest(),'lines':[]}
+          for idx,txt in enumerate(approved,1):
+              lid=f'a{idx:02d}'
+              req=pathlib.Path('voice_requests')/f'tic_kikuka_potato_20261110_sdk225_{lid}.json'
+              req.write_text(json.dumps({'text':txt,'profile':profile},ensure_ascii=False,indent=2),encoding='utf-8')
+              for attempt in range(1,4):
+                  try:
+                      proc=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=240)
+                  except subprocess.TimeoutExpired:
+                      print(f'TIMEOUT {lid} attempt {attempt}',flush=True)
+                      time.sleep(attempt*3)
+                      continue
+                  if proc.returncode==0:
+                      wav=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                      if wav.is_file() and wav.stat().st_size>1000:
+                          shutil.copy2(wav,root/f'{lid}.wav')
+                          with wave.open(str(root/f'{lid}.wav'),'rb') as w:
+                              dur=w.getnframes()/w.getframerate()
+                              meta={'id':lid,'text':txt,'duration_sec':round(dur,5),'sample_rate':w.getframerate(),'channels':w.getnchannels(),'bytes':wav.stat().st_size}
+                          manifest['lines'].append(meta)
+                          (root/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                          print(f'OK {lid} duration={dur:.3f}s bytes={wav.stat().st_size}',flush=True)
+                          break
+                  print(f'FAILED {lid} attempt {attempt}: {(proc.stderr or "")[-700:]}',flush=True)
+                  time.sleep(attempt*3)
+              else:
+                  raise SystemExit(f'Failed line {lid}')
+          assert len(manifest['lines'])==11
+          print('ALL ELEVEN AUDIO WAVS GENERATED SUCCESSFULLY',flush=True)
+          PY
+      - name: Upload WAV artifact and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-kikuka-potato-08g-sdk225
+          path: voice_outputs/tic_kikuka_potato_20261110_sdk225/
+          if-no-files-found: error
+          retention-days: 30
