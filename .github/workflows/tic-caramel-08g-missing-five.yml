@@ -1,0 +1,52 @@
+name: TIC Caramel 08G Missing Five Only
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tic-caramel-08g-missing-five.yml']
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'google-genai==2.25.0'
+      - name: Generate missing five without touching existing a03 and a05
+        shell: bash
+        run: |
+          mkdir -p voice_outputs/caramel_08g_missing_five
+          cat > /tmp/tts_missing.py <<'PY'
+          import json,pathlib,subprocess,sys,wave
+          req=json.loads(pathlib.Path('voice_batches/tic_caramel_egg_pudding_20261110_short7_natural_v2.json').read_text(encoding='utf8'))
+          approved=['材料3つで焼きプリン！','表面こんがり、中はとろとろ。','卵2個。','牛乳150ミリ。','砂糖大さじ1。優しく混ぜる。','型に注ぐ。','180度で15分焼けば完成！']
+          assert [x['text'] for x in req['lines']]==approved
+          out=pathlib.Path('voice_outputs/caramel_08g_missing_five')
+          result={}
+          for i in [1,2,4,6,7]:
+              fn=f'a{i:02d}.wav'
+              inp={'text':approved[i-1],'output_path':str((out/fn).resolve()),'profile':dict(req['profile'],model='gemini-2.5-flash-preview-tts')}
+              try:
+                  p=subprocess.run([sys.executable,'examples/gemini_voice_command.py'],input=json.dumps(inp,ensure_ascii=False),text=True,capture_output=True,timeout=105)
+                  if p.returncode: raise RuntimeError(p.stderr[-900:])
+                  with wave.open(str(out/fn),'rb') as w: duration=w.getnframes()/w.getframerate()
+                  result[fn]={'text':approved[i-1],'duration':duration,'status':'ok'}
+                  print('SUCCESS',fn,duration,flush=True)
+              except Exception as e:
+                  result[fn]={'text':approved[i-1],'status':'failed','error':str(e)}
+                  print('FAILED',fn,str(e)[-400:],flush=True)
+          (out/'manifest.json').write_text(json.dumps({'sdk':'google-genai==2.25.0','voice':'Puck','results':result},ensure_ascii=False,indent=2),encoding='utf8')
+          if any(x['status']!='ok' for x in result.values()): sys.exit(1)
+          PY
+          python -u /tmp/tts_missing.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-caramel-08g-missing-five
+          path: voice_outputs/caramel_08g_missing_five/
+          retention-days: 30
