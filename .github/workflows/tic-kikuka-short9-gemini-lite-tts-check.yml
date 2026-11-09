@@ -1,0 +1,42 @@
+name: TIC Kikuka Gemini Flash Lite TTS availability check SDK225
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tic-kikuka-short9-gemini-lite-tts-check.yml']
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai==2.25.0'
+      - name: Test short approved line in Gemini Flash Lite TTS
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,pathlib,sys,subprocess,shutil
+          p=pathlib.Path('voice_requests/kikuka_short9_lite_a01.json');p.parent.mkdir(exist_ok=True)
+          p.write_text(json.dumps({'text':'じゃがいもで菊の花！','profile':{'model':'gemini-2.5-flash-lite-preview-tts','voice_name':'Puck','style':'成人男性の明るく自然な声で読み上げる。早口禁止。指定文のみ読む。'}},ensure_ascii=False))
+          try:
+              r=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(p)],capture_output=True,text=True,timeout=85)
+          except subprocess.TimeoutExpired:raise SystemExit('Lite TTS request timeout')
+          print('EXIT',r.returncode,'STDERR',(r.stderr or '')[-2500:])
+          if r.returncode:raise SystemExit(r.returncode)
+          f=pathlib.Path('voice_outputs')/p.stem/'voice.wav';assert f.is_file()
+          out=pathlib.Path('voice_outputs/kikuka_short9_lite');out.mkdir(exist_ok=True)
+          shutil.copy(f,out/'a01.wav')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kikuka-short9-gemini-lite-check
+          path: voice_outputs/kikuka_short9_lite/
+          if-no-files-found: warn
+          retention-days: 30
