@@ -40,7 +40,7 @@ jobs:
           def build(i):
               errors=[]
               for model in models:
-                  stem=f"tic_oil_dumplings_4line_{i:02d}_{model.replace('-','_')}"
+                  stem=f"tic_oil_dumplings_4line_{i:02d}_{model.replace('-','_').replace('.','_')}"
                   request_path=pathlib.Path("voice_requests")/(stem+".json")
                   request_path.write_text(json.dumps({"text":lines[i-1],"profile":{"model":model,"voice_name":"Puck","style":style}},ensure_ascii=False,indent=2),encoding="utf-8")
                   try:
