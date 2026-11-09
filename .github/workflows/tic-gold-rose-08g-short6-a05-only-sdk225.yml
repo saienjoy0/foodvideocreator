@@ -1,0 +1,66 @@
+name: TIC Gold Rose Six-Line New A05 Puck Pinned SDK
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-gold-rose-08g-short6-a05-only-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install proven Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate only the changed sentence using Puck
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json, os, pathlib, subprocess, sys, shutil, wave, time
+          assert os.getenv('GEMINI_API_KEY')
+          approved="ひだをまとめて形を整えると、くるっとバラに変わっていく！"
+          old=json.loads(pathlib.Path('voice_batches/tic_gold_ribbon_rose_20261109_08g.json').read_text(encoding='utf-8'))
+          style=old['profile']['style']
+          request={'text':approved,'profile':{'model':'gemini-3.8-flash-tts','voice_name':'Puck','style':style}}
+          req=pathlib.Path('voice_requests/tic_gold_rose_short6_a05_20261109_pinned.json')
+          req.write_text(json.dumps(request,ensure_ascii=False),encoding='utf-8')
+          out=pathlib.Path('voice_outputs/tic_gold_rose_short6_a05_20261109_pinned')
+          out.mkdir(parents=True,exist_ok=True)
+          for attempt in range(1,4):
+              print('Gemini SDK 2.25.0 / Puck / attempt',attempt,flush=True)
+              try:
+                  p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=480)
+              except subprocess.TimeoutExpired:
+                  print('TTS HTTP request timed out',flush=True)
+                  continue
+              if p.returncode==0:
+                  gen=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                  assert gen.is_file() and gen.stat().st_size>1000
+                  shutil.copy2(gen,out/'a05.wav')
+                  with wave.open(str(out/'a05.wav'),'rb') as w:
+                      duration=w.getnframes()/w.getframerate()
+                  (out/'manifest.json').write_text(json.dumps({'sdk':'google-genai==2.25.0','model':'gemini-3.8-flash-tts','voice':'Puck','line_id':'a05','text':approved,'duration':duration},ensure_ascii=False,indent=2),encoding='utf-8')
+                  print('SUCCESS a05',duration,'seconds',flush=True)
+                  break
+              print('TTS provider error',p.stderr[-1300:],flush=True)
+              time.sleep(attempt*4)
+          else:
+              raise SystemExit('Gemini TTS unavailable for new sentence')
+          PY
+      - name: Upload generated sentence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-gold-rose-short6-a05-gemini-puck
+          path: voice_outputs/tic_gold_rose_short6_a05_20261109_pinned/
+          if-no-files-found: error
+          retention-days: 30
