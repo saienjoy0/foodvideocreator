@@ -1,0 +1,71 @@
+name: TIC Cat Oreo Short159 Gemini 08G SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-cat-oreo-short159-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Synthesize exact approved short 13 lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import concurrent.futures, hashlib, json, os, pathlib, shutil, subprocess, sys, wave
+          approved=json.loads(r'''["オレオに猫!? 実はもちもち大福！","もち米粉とコーンスターチで食感を調整。","砂糖と牛乳を混ぜ、こす。","穴を開けて25分蒸す。","熱いうちにバターを加え、","伸ばして練ると、もちもちに。","クリームを小分けにして、冷凍して固める。","もちで凍らせたクリームを包んで丸める。","オレオで挟む。","猫耳を付けて、","耳とほっぺを色付けて、目と鼻を描く。","猫の顔がのぞく、大福の完成！","中はチーズクリーム！"]''')
+          style="成人男性の日本語料理ショートナレーター。力強く明るく熱血でエネルギッシュ。過剰な絶叫はせず、自然な会話速度の1.0倍で、聞き取りやすく明瞭に話す。早口や無理な圧縮をしない。原稿にない言葉を追加せず、承認済みの本文を句読点・語句の順序を変えずに読む。"
+          assert len(approved)==13 and os.getenv('GEMINI_API_KEY')
+          out=pathlib.Path('voice_outputs/tic_cat_oreo_short159_20261110')
+          out.mkdir(parents=True,exist_ok=True)
+          (out/'approved_script.txt').write_text('\n'.join(approved)+'\n',encoding='utf-8')
+          def make(item):
+              i,t=item; lid=f'a{i:02d}'; err=[]
+              for k,model in enumerate(['gemini-3.1-flash-tts-preview','gemini-3.8-flash-lite-tts','gemini-2.5-flash-preview-tts'],1):
+                  req=pathlib.Path('voice_requests')/f'tic_cat_oreo_short159_{lid}_{k}.json'
+                  req.parent.mkdir(exist_ok=True)
+                  req.write_text(json.dumps({'text':t,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+                  try: p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=115)
+                  except subprocess.TimeoutExpired: err.append(model+':timeout'); continue
+                  if p.returncode: err.append(model+':'+(p.stderr or p.stdout)[-200:]); continue
+                  source=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                  if not source.is_file() or source.stat().st_size<1000: err.append(model+':missing_wav');continue
+                  dst=out/f'{lid}.wav';shutil.copy2(source,dst)
+                  with wave.open(str(dst),'rb') as w:dur=w.getnframes()/w.getframerate();sr=w.getframerate();channels=w.getnchannels()
+                  return {'id':lid,'text':t,'model':model,'duration':round(dur,6),'sample_rate':sr,'channels':channels,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest(),'bytes':dst.stat().st_size},None
+              return None,{'id':lid,'errors':err}
+          manifest={'status':'generating','sdk':'google-genai==2.25.0','voice':'Puck','approved_lines':approved,'approved_sha256':hashlib.sha256('\n'.join(approved).encode('utf-8')).hexdigest(),'lines':[],'failures':[]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+              future_list=[pool.submit(make,x) for x in enumerate(approved,1)]
+              for future in concurrent.futures.as_completed(future_list):
+                  obj,err=future.result()
+                  if obj: manifest['lines'].append(obj); print('OK',obj['id'],obj['duration'],obj['model'],flush=True)
+                  else: manifest['failures'].append(err);print('FAIL',json.dumps(err,ensure_ascii=False),flush=True)
+                  manifest['lines'].sort(key=lambda z:z['id'])
+                  (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          manifest['status']='completed' if len(manifest['lines'])==13 else 'incomplete'
+          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          assert manifest['status']=='completed','some clips missing'
+          print('SUCCESS 13/13 Gemini WAVs',flush=True)
+          PY
+      - name: Upload WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-cat-oreo-short159-sdk225
+          path: voice_outputs/tic_cat_oreo_short159_20261110/
+          if-no-files-found: error
+          retention-days: 30
