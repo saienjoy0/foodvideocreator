@@ -1,0 +1,68 @@
+name: TIC Gold Rose 08G Speech QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-gold-rose-08g-speech-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai==2.25.0'
+      - name: Download exact successful rose voice artifact
+        run: |
+          mkdir -p checked_wavs
+          gh run download 42602741529 -n tic-gold-rose-08g-pinned-sdk -D checked_wavs
+          test -s checked_wavs/a01.wav
+          test -s checked_wavs/a08.wav
+      - name: Transcribe each generated WAV for missing or altered words
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, pathlib, re, difflib, unicodedata
+          from google import genai
+          from google.genai import types
+          root=pathlib.Path('checked_wavs')
+          src=json.loads(pathlib.Path('voice_batches/tic_gold_ribbon_rose_20261109_08g.json').read_text(encoding='utf-8'))
+          client=genai.Client()
+          output={'model':'gemini-2.5-flash','rows':[]}
+          def norm(s):
+              return re.sub(r'[\W_]+','',unicodedata.normalize('NFKC',s))
+          for row in src['lines']:
+              audio=(root / (row['id']+'.wav')).read_bytes()
+              try:
+                  r=client.models.generate_content(
+                      model='gemini-2.5-flash',
+                      contents=['次の日本語の音声に実際に発音されている言葉を、日本語で可能な限り忠実に文字起こししてください。説明や創作はしないでください。',types.Part.from_bytes(data=audio,mime_type='audio/wav')],
+                      config=types.GenerateContentConfig(temperature=0)
+                  )
+                  heard=(r.text or '').strip()
+                  ratio=difflib.SequenceMatcher(None,norm(row['text']),norm(heard)).ratio()
+                  output['rows'].append({'id':row['id'],'approved':row['text'],'heard':heard,'similarity':round(ratio,4),'status':'CHECK' if ratio < .8 else 'MATCH_LIKELY'})
+                  print(f"{row['id']} similarity={ratio:.3f}: {heard}",flush=True)
+              except Exception as e:
+                  output['rows'].append({'id':row['id'],'status':'UNVERIFIED','error':str(e)[:300]})
+                  print(f"{row['id']} speech QA unavailable: {type(e).__name__}: {str(e)[:200]}",flush=True)
+              pathlib.Path('speech_qa_gold_rose.json').write_text(json.dumps(output,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('SPEECH_QA_FINISHED',flush=True)
+          PY
+      - name: Upload speech QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-gold-rose-08g-speech-QA
+          path: speech_qa_gold_rose.json
+          if-no-files-found: warn
+          retention-days: 30
