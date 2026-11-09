@@ -1,0 +1,52 @@
+name: TIC Hologram 08G Verify Gemini WAV and Recover Artifact
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-hologram-08g-verify-recovered.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Confirm SDK version
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Download actually generated Gemini audio from prior run
+        run: |
+          mkdir -p voice_outputs/tic_hologram_08g_recovered
+          gh run download 42635100811 -R "${{ github.repository }}" -n tic-hologram-08g-onepass-sdk225 -D voice_outputs/tic_hologram_08g_recovered
+      - name: Verify Gemini metadata, approved script and WAV
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, pathlib, wave, hashlib
+          root=pathlib.Path('voice_outputs/tic_hologram_08g_recovered')
+          m=json.loads((root/'metadata.json').read_text('utf-8'))
+          assert m['status']=='completed'
+          assert m['text_sha256']=='a243fd3be5310b7c4d3c394975a66852867f437b71e573627e757291ebc2cb9e'
+          assert m['provider_result']['provider']=='gemini'
+          assert m['provider_result']['voice_name']=='Puck'
+          assert m['provider_result']['model']=='gemini-3.8-flash-tts'
+          with wave.open(str(root/'voice.wav'),'rb') as w:
+              assert w.getframerate()==24000 and w.getnchannels()==1
+              duration=w.getnframes()/w.getframerate()
+          assert 20<=duration<=25
+          (root/'recovery_qa.json').write_text(json.dumps({'status':'success','origin_generation_run':42635100811,'original_request_text_sha256':m['text_sha256'],'sdk':'google-genai==2.25.0','voice':'Puck','duration_seconds':duration,'reason_for_origin_run_failure':'redundant_samefile_copy_after_successful_TTS'},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('VERIFIED Gemini WAV',duration,'s',m['text_sha256'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tic-hologram-08g-verified-gemini-wav
+          path: voice_outputs/tic_hologram_08g_recovered/
+          if-no-files-found: error
+          retention-days: 30
