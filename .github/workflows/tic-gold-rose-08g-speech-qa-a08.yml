@@ -1,0 +1,77 @@
+name: TIC Gold Rose 08G Speech QA A08 Retry
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-gold-rose-08g-speech-qa-a08.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai==2.25.0'
+      - name: Download approved eighth sentence
+        run: |
+          mkdir -p checked_wavs
+          gh run download 42602741529 -n tic-gold-rose-08g-pinned-sdk -D checked_wavs
+          test -s checked_wavs/a08.wav
+      - name: Speech QA for eighth sentence using available credentials
+        run: |
+          python - <<'PY'
+          import os, json, pathlib, re, unicodedata, difflib, time
+          from google import genai
+          from google.genai import types
+          target='一本のリボンから、こんな豪華な花束が完成！'
+          src=json.loads(pathlib.Path('voice_batches/tic_gold_ribbon_rose_20261109_08g.json').read_text(encoding='utf-8'))
+          assert src['lines'][7]['text']==target
+          wav=pathlib.Path('checked_wavs/a08.wav').read_bytes()
+          keys=list(dict.fromkeys(k.strip() for k in os.environ['GEMINI_API_KEYS'].splitlines() if k.strip()))
+          print('available QA credentials:',len(keys),flush=True)
+          result={'id':'a08','approved':target,'status':'UNVERIFIED','attempts':0}
+          for n,key in enumerate(keys):
+              try:
+                  c=genai.Client(api_key=key)
+                  r=c.models.generate_content(model='gemini-2.5-flash',contents=['次の日本語音声で実際に発声された言葉だけを、そのまま日本語で文字起こししてください。追加説明は不要です。',types.Part.from_bytes(data=wav,mime_type='audio/wav')],config=types.GenerateContentConfig(temperature=0))
+                  heard=(r.text or '').strip()
+                  norm=lambda s:re.sub(r'[\W_]+','',unicodedata.normalize('NFKC',s))
+                  similarity=difflib.SequenceMatcher(None,norm(target),norm(heard)).ratio()
+                  result.update(status='MATCH_LIKELY' if similarity>=.8 else 'CHECK',heard=heard,similarity=round(similarity,4),attempts=n+1)
+                  print('QA a08',result['status'],'similarity',similarity,'recognized',heard,flush=True)
+                  break
+              except Exception as e:
+                  result['attempts']+=1
+                  result['error']=type(e).__name__+': '+str(e)[:250]
+                  print('QA attempt',n+1,'unavailable:',type(e).__name__,flush=True)
+          pathlib.Path('speech_qa_a08.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+      - name: Upload eighth sentence speech QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-gold-rose-a08-speech-qa
+          path: speech_qa_a08.json
+          if-no-files-found: warn
