@@ -1,0 +1,65 @@
+name: TIC Squid Lion 08G Natural Short One-Pass Gemini 2.25.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-squid-lion-08g-natural-onepass.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  natural-tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Synthesize natural one-pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json,os,pathlib,subprocess,sys,hashlib,shutil,wave,time
+          lines=['イカが獅子舞に！？','細かく切れ目を入れ、','向きを変えて格子模様に。','細長く切って、鍋へ。','熱で縮み、模様が開く！','厄を払い、福を呼ぶ獅子舞！']
+          assert os.getenv('GEMINI_API_KEY'), 'Missing GEMINI_API_KEY secret'
+          approved='\n'.join(lines)
+          out=pathlib.Path('voice_outputs/tic_squid_lion_natural_onepass_20261110');out.mkdir(parents=True,exist_ok=True)
+          (out/'approved_script.txt').write_text(approved+'\n',encoding='utf-8')
+          style='明るく熱血で親しみやすい成人男性の日本語料理Shortsナレーション。自然な話速で一言ずつ明瞭に。早口にならない。息継ぎの間は自然に入れる。過剰な絶叫なし。強制高速化しない。承認済みの原稿6文を順番通り一文字も変えず、追加や省略をせずに読み上げる。'
+          attempts=[('gemini-3.8-flash-tts',200),('gemini-3.8-flash-lite-tts',170),('gemini-3.8-flash-tts',180)]
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','approved_lines':lines,'text_sha256':hashlib.sha256(approved.encode('utf-8')).hexdigest(),'attempts':[],'success':False}
+          for n,(model,timeout) in enumerate(attempts,1):
+            req=pathlib.Path('voice_requests/tic_squid_lion_natural_onepass_20261110.json')
+            req.write_text(json.dumps({'text':approved,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+            try:
+              p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=timeout)
+              wav=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+              if p.returncode==0 and wav.is_file() and wav.stat().st_size>2048:
+                shutil.copy2(wav,out/'voice.wav')
+                with wave.open(str(out/'voice.wav'),'rb') as w:seconds=w.getnframes()/w.getframerate()
+                manifest.update(success=True,model=model,duration=seconds,wav_sha256=hashlib.sha256((out/'voice.wav').read_bytes()).hexdigest())
+                manifest['attempts'].append({'model':model,'success':True,'duration':seconds})
+                break
+              manifest['attempts'].append({'model':model,'success':False,'error':(p.stderr or '')[-400:]})
+            except Exception as e:manifest['attempts'].append({'model':model,'success':False,'error':str(e)[-400:]})
+            print('attempt',n,model,'failed',str(manifest['attempts'][-1])[:300],flush=True)
+            (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+            time.sleep(2)
+          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+          assert manifest['success'], 'All natural voice TTS attempts failed'
+          print('SUCCESS one-pass WAV',manifest['duration'],manifest['model'],flush=True)
+          PY
+      - name: Upload WAV and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-squid-lion-08g-natural-onepass-wav
+          path: voice_outputs/tic_squid_lion_natural_onepass_20261110/
+          if-no-files-found: warn
+          retention-days: 30
