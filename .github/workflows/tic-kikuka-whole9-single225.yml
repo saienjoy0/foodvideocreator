@@ -1,0 +1,91 @@
+name: TIC Kikuka Whole Nine Gemini Natural Single SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-kikuka-whole9-single225.yml'
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install SDK known successful version
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate complete exact nine-sentence narration in one request
+        shell: bash
+        run: |
+          python -u - <<'PY'
+          import json,os,base64,hashlib,pathlib,subprocess,sys,wave
+          approved=json.loads(r'''["じゃがいもで菊の花！","四角く切り、四隅を落とす。","割り箸を両脇に置き、底を残して細く切る。","90度回して、もう一度切る。","塩水で花びらを開きやすくし、塩気は洗い流す。","水気を拭いて、でんぷん粉をまぶす。","150度の油で揚げる。","トマトソースをかけたら、","菊の花の完成！"]''')
+          assert len(approved)==9 and os.environ.get('GEMINI_API_KEY')
+          out=pathlib.Path('voice_outputs/tic_kikuka_whole9');out.mkdir(parents=True,exist_ok=True)
+          requested='\n'.join(approved)
+          profile='Adult Japanese male narrator. Bright, strong energetic cooking Shorts voice. Read conversationally at NATURAL normal pace, never speed up or shout. Recite exactly the following nine Japanese sentences in order, with no omissions, additions, rephrasing or headings.'
+          prompt=profile+'\nText to synthesize (only this spoken text):\n'+requested
+          (out/'approved_script.txt').write_text(requested,encoding='utf-8')
+          script_hash=hashlib.sha256(requested.encode()).hexdigest()
+          # Use a subprocess to impose reliable total timeout and permit fallbacks.
+          generated=False
+          for attempt,model,stream in [(1,'gemini-3.1-flash-tts-preview',True),(2,'gemini-3.1-flash-tts-preview',False),(3,'gemini-3.8-flash-tts',False)]:
+              code='''import os,sys,base64,json,wave,pathlib
+from google import genai
+key=os.environ['GEMINI_API_KEY']
+client=genai.Client(api_key=key)
+model=sys.argv[1];prompt=sys.argv[2];stream=(sys.argv[3]=='True');target=pathlib.Path(sys.argv[4])
+kwargs={'model':model,'response_format':{'type':'audio'},'generation_config':{'speech_config':[{'voice':'Puck'}]}}
+if model.startswith('gemini-3.8'):
+    request={'model':model,'input':[{'type':'user_input','content':[{'type':'text','text':prompt,'annotations':[{'type':'speech_metadata','style':'Natural speed, energetic adult Japanese male, not shouting'}]}]}],'response_format':{'type':'audio'},'generation_config':{'speech_config':[{'voice':'Puck'}]}}
+    ans=client.interactions.create(**request)
+    raw=ans.output_audio.data
+    audio=base64.b64decode(raw) if isinstance(raw,str) else bytes(raw)
+else:
+    if stream:
+        evs=client.interactions.create(input=prompt,stream=True,**kwargs);chunks=[]
+        for ev in evs:
+            if getattr(ev,'event_type',None)=='step.delta':
+                delta=getattr(ev,'delta',None)
+                if getattr(delta,'type',None)=='audio':
+                    dat=getattr(delta,'data',None)
+                    if dat:chunks.append(base64.b64decode(dat) if isinstance(dat,str) else bytes(dat))
+        audio=b''.join(chunks)
+    else:
+        ans=client.interactions.create(input=prompt,**kwargs)
+        raw=ans.output_audio.data
+        audio=base64.b64decode(raw) if isinstance(raw,str) else bytes(raw)
+if not audio or len(audio)<3000:raise ValueError('No nonempty audio returned')
+if audio[:4]==b'RIFF' and audio[8:12]==b'WAVE':target.write_bytes(audio)
+else:
+    with wave.open(str(target),'wb') as wf:
+        wf.setnchannels(1);wf.setsampwidth(2);wf.setframerate(24000);wf.writeframes(audio)
+with wave.open(str(target),'rb') as wf:dur=wf.getnframes()/wf.getframerate()
+print(json.dumps({'duration_seconds':dur,'bytes':target.stat().st_size,'model':model,'stream':stream}))
+'''
+              try:
+                  print('TRY',attempt,model,'stream',stream,flush=True)
+                  p=subprocess.run([sys.executable,'-u','-c',code,model,prompt,str(stream),str(out/'whole9.wav')],capture_output=True,text=True,timeout=185)
+                  if p.returncode==0 and (out/'whole9.wav').is_file():
+                      print('SUCCESS',p.stdout[-500:],flush=True)
+                      generated=True
+                      with wave.open(str(out/'whole9.wav'),'rb') as wf:duration=wf.getnframes()/wf.getframerate()
+                      meta={'model':model,'sdk':'google-genai==2.25.0','voice':'Puck','approved_lines':approved,'approved_sha256':script_hash,'stream':stream,'duration_seconds':duration,'audio_sha256':hashlib.sha256((out/'whole9.wav').read_bytes()).hexdigest()}
+                      (out/'manifest.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                      break
+                  else:print('FAIL',p.returncode,(p.stderr or p.stdout)[-1000:],flush=True)
+              except subprocess.TimeoutExpired:print('TIMEOUT',model,flush=True)
+          assert generated,'No WAV from Gemini entire script'
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-kikuka-whole9-single225
+          path: voice_outputs/tic_kikuka_whole9/
+          if-no-files-found: warn
+          retention-days: 30
