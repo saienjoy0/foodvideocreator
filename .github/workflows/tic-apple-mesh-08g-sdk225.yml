@@ -1,0 +1,72 @@
+name: TIC Apple Mesh 08G Gemini TTS SDK 2.25.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-apple-mesh-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned previously successful SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Synthesize seven verbatim approved Japanese lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json, os, pathlib, subprocess, sys, shutil, wave, time, hashlib
+          approved = json.loads(r'''["このリンゴ、網から作れる！","果物を包む網を、ハサミで開いて折りたたむ。","両端を糸でぎゅっと結んで、形を固定。","ここからが不思議。","裏返して広げると、何も詰めてないのに、ころんと丸いリンゴに！","仕上げは枝と葉っぱを付けるだけ。","ほら、完成！"]''')
+          profile = json.loads(r'''{"model":"gemini-3.8-flash-tts","voice_name":"Puck","style":"日本語の工作Shorts向けナレーション。成人男性。明るく元気で、力強いが過剰に叫ばない、親しみやすい熱量のある声。テンポは通常より少し速め、子音は明瞭、自然なイントネーション。冒頭は驚き、手順は歯切れよく、『ここからが不思議』では期待感、最後は完成の喜び。承認済み本文を一字一句そのまま読み、語句の追加、言い換え、省略、順番変更は一切しない。"}''')
+          assert len(approved)==7 and profile['voice_name']=='Puck'
+          assert os.getenv('GEMINI_API_KEY'), 'GitHub secret missing'
+          out=pathlib.Path('voice_outputs/tic_apple_mesh_20261109_08g_sdk225')
+          out.mkdir(parents=True,exist_ok=True)
+          (out/'approved_script.txt').write_text('\n'.join(approved)+'\n',encoding='utf-8')
+          manifest={'sdk':'google-genai==2.25.0','model':profile['model'],'voice':profile['voice_name'],'text_sha256':hashlib.sha256('\n'.join(approved).encode()).hexdigest(),'lines':[]}
+          for idx,script in enumerate(approved,1):
+              lid=f'a{idx:02d}'
+              req=pathlib.Path('voice_requests')/f'tic_apple_mesh_20261109_sdk225_{lid}.json'
+              req.write_text(json.dumps({'text':script,'profile':profile},ensure_ascii=False),encoding='utf-8')
+              for attempt in range(1,4):
+                  try:
+                      p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=240)
+                  except subprocess.TimeoutExpired:
+                      print(f'TIMEOUT {lid} attempt {attempt}',flush=True)
+                      continue
+                  if p.returncode==0:
+                      gen=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                      if gen.is_file() and gen.stat().st_size>1000:
+                          shutil.copy2(gen,out/f'{lid}.wav')
+                          with wave.open(str(out/f'{lid}.wav'),'rb') as w:
+                              duration=w.getnframes()/w.getframerate()
+                              meta={'id':lid,'text':script,'duration':round(duration,5),'rate':w.getframerate(),'channels':w.getnchannels(),'bytes':gen.stat().st_size}
+                          manifest['lines'].append(meta)
+                          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                          print(f'OK {lid} {duration:.3f} seconds',flush=True)
+                          break
+                  print(f'FAILED {lid} attempt {attempt}: {(p.stderr or "")[-650:]}',flush=True)
+                  time.sleep(attempt*4)
+              else:
+                  raise SystemExit(f'TTS failed {lid}')
+          assert len(manifest['lines']) == 7
+          print('ALL 7 WAV GENERATED',flush=True)
+          PY
+      - name: Upload seven WAV files and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-apple-mesh-08g-gemini-sdk225
+          path: voice_outputs/tic_apple_mesh_20261109_08g_sdk225/
+          if-no-files-found: error
+          retention-days: 30
