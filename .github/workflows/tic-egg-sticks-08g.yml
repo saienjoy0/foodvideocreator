@@ -1,0 +1,73 @@
+name: TIC Egg Sticks 08G Puck SDK 2.25.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-egg-sticks-08g.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tic-egg-sticks-08g-20261110
+  cancel-in-progress: false
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Gemini SDK exactly 2.25.0
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q 'google-genai==2.25.0'
+          .venv/bin/python -m pip show google-genai
+      - name: Verify API secret
+        run: test -n "${GEMINI_API_KEY:-}"
+      - name: Generate 11 approved voice lines
+        timeout-minutes: 75
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p voice_outputs/tic_egg_sticks_20261110_08g_v1
+          .venv/bin/python -u scripts/run_voice_batch.py voice_batches/tic_egg_sticks_20261110_08g_v1.json 2>&1 | tee voice_outputs/tic_egg_sticks_20261110_08g_v1/run.log
+      - name: Upload generated WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-voice-egg-sticks-20261110
+          path: voice_outputs/tic_egg_sticks_20261110_08g_v1/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Publish WAV files on isolated branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=voice_outputs/tic_egg_sticks_20261110_08g_v1
+          test -f "$OUT/manifest.json" || exit 0
+          cd "$OUT"
+          git init -q -b voice-out/tic_egg_sticks_20261110_08g_v1
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -q -m 'egg sticks WAV outputs [skip ci]'
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:refs/heads/voice-out/tic_egg_sticks_20261110_08g_v1
