@@ -1,0 +1,79 @@
+name: TIC Cat Oreo 08G Gemini rescue SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-cat-oreo-08g-rescue225-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Gemini SDK 2.25.0
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Synthesize approved 13 lines via Gemini TTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import concurrent.futures, hashlib, json, os, pathlib, shutil, subprocess, sys, wave
+          approved=json.loads(r'''["オレオに猫が挟まってる!? 実はこれ、もちもちの猫型スイーツ。","もち米粉にコーンスターチを混ぜて、食感を調整。砂糖と牛乳も加える。","よく混ぜたら、ざるでこしてダマを取る。","ラップに穴を開け、沸騰した蒸し器で約25分蒸す。","熱いうちにバターを加えて、","びよーんと引っ張りながら、つやが出るまでしっかり練る。","チーズクリームを小さく分けて冷凍。固めると包みやすい。","もち生地を広げ、凍らせたクリームを包んで、丸く形を整える。","オレオで上下から挟んだら、","ちょこんと猫耳をつけて、","耳をほんのり色づけ、目と鼻を描く。ほっぺも赤くしたら、","オレオの間から猫の顔がのぞく。かわいい猫大福が完成！","かじれば、中はつぶつぶ入りのチーズクリーム！"]''')
+          style="成人男性の明るく力強い熱血系料理Shortsナレーター。Puckの声で元気よく、聞き取りやすく、自然な抑揚で読み上げる。絶叫や意味のない間を避ける。読み上げ本文は一字一句追加・省略・変更しない。"
+          assert len(approved)==13 and os.getenv('GEMINI_API_KEY')
+          out=pathlib.Path('voice_outputs/tic_cat_oreo_08g_rescue225_20261110')
+          out.mkdir(parents=True,exist_ok=True)
+          (out/'approved_script.txt').write_text('\n'.join(approved)+'\n',encoding='utf-8')
+          def render(item):
+              idx, line = item
+              lid=f'a{idx:02d}'
+              models=['gemini-3.1-flash-tts-preview','gemini-3.8-flash-lite-tts','gemini-2.5-flash-preview-tts','gemini-3.8-flash-tts']
+              errors=[]
+              for attempt,model in enumerate(models,1):
+                  req=pathlib.Path('voice_requests')/f'tic_cat_oreo_rescue225_{lid}_{attempt}.json'
+                  req.write_text(json.dumps({'text':line,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+                  try:
+                      p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=100)
+                  except subprocess.TimeoutExpired:
+                      errors.append(f'{model}: timeout 100s');continue
+                  if p.returncode:
+                      errors.append(f'{model}: {(p.stderr or p.stdout)[-230:]}');continue
+                  src=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                  if not src.is_file() or src.stat().st_size<1000:
+                      errors.append(f'{model}: WAV missing');continue
+                  dst=out/f'{lid}.wav'
+                  shutil.copy2(src,dst)
+                  with wave.open(str(dst),'rb') as wf:
+                      dur=wf.getnframes()/wf.getframerate();rate=wf.getframerate();ch=wf.getnchannels()
+                  return {'id':lid,'text':line,'model':model,'duration_sec':round(dur,6),'rate':rate,'channels':ch,'bytes':dst.stat().st_size,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()},None
+              return None,{'id':lid,'errors':errors}
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','approved_lines':approved,'approved_sha256':hashlib.sha256('\n'.join(approved).encode()).hexdigest(),'lines':[],'failures':[]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+              futures=[ex.submit(render,item) for item in enumerate(approved,1)]
+              for future in concurrent.futures.as_completed(futures):
+                  entry,err=future.result()
+                  if entry:
+                      manifest['lines'].append(entry);print('OK',entry['id'],entry['model'],entry['duration_sec'],flush=True)
+                  else:
+                      manifest['failures'].append(err);print('FAIL',json.dumps(err,ensure_ascii=False),flush=True)
+                  manifest['lines'].sort(key=lambda x:x['id'])
+                  (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          assert [entry['id'] for entry in manifest['lines']]==[f'a{i:02d}' for i in range(1,14)],'Incomplete WAV bundle'
+          print('SUCCESS all 13 approved clips',manifest['approved_sha256'],flush=True)
+          PY
+      - name: Upload generated WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-cat-oreo-08g-rescue225-20261110
+          path: voice_outputs/tic_cat_oreo_08g_rescue225_20261110/
+          if-no-files-found: error
+          retention-days: 30
