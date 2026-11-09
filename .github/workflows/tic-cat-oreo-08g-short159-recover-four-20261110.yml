@@ -1,0 +1,72 @@
+name: TIC Cat Oreo 08G Short159 Remaining Four Natural SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-cat-oreo-08g-short159-recover-four-20261110.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    strategy:
+      fail-fast: false
+      matrix:
+        segment: [3,4,11,13]
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SEGMENT_ID: ${{ matrix.segment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned SDK exactly
+        run: python -m pip install -q 'google-genai==2.25.0'
+      - name: Synthesize approved short Japanese text at natural speed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import os,sys,subprocess,pathlib,json,hashlib,shutil,time,wave
+          approved=json.loads(r'''["オレオに猫!? 実はもちもち大福！","もち米粉とコーンスターチで食感を調整。","砂糖と牛乳を混ぜ、こす。","穴を開けて25分蒸す。","熱いうちにバターを加え、","伸ばして練ると、もちもちに。","クリームを小分けにして、冷凍して固める。","もちで凍らせたクリームを包んで丸める。","オレオで挟む。","猫耳を付けて、","耳とほっぺを色付けて、目と鼻を描く。","猫の顔がのぞく、大福の完成！","中はチーズクリーム！"]''')
+          i=int(os.environ['SEGMENT_ID'])
+          assert i in [3,4,11,13]
+          s=approved[i-1]; id=f'a{i:02d}'
+          out=pathlib.Path('voice_outputs')/f'tic_cat_oreo_159_missing_{id}';out.mkdir(parents=True,exist_ok=True)
+          style="成人男性の日本語料理YouTube Shortsナレーション。明るく熱血で力強く、しかし無理に早口にせず通常の自然な速度で聞き取りやすく読む。過剰な絶叫なし。本文の一字一句を変更・省略・追加せずそのまま読んでください。"
+          manifest={'id':id,'text':s,'sdk':'google-genai==2.25.0','voice':'Puck','success':False,'attempts':[]}
+          for attempt,(model,timeout) in enumerate([('gemini-3.8-flash-lite-tts',185),('gemini-3.1-flash-tts-preview',65),('gemini-3.8-flash-lite-tts',185),('gemini-3.1-flash-tts-preview',65),('gemini-3.8-flash-tts',150)],1):
+            req=pathlib.Path('voice_requests')/f'tic_cat_oreo_159_missing_req_{id}_{attempt}.json'
+            req.parent.mkdir(parents=True,exist_ok=True)
+            req.write_text(json.dumps({'text':s,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+            try:
+              p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=timeout)
+              wav=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+              if p.returncode==0 and wav.is_file() and wav.stat().st_size>2000:
+                dest=out/f'{id}.wav';shutil.copyfile(wav,dest)
+                with wave.open(str(dest),'rb') as w:dur=w.getnframes()/w.getframerate();rate=w.getframerate();channels=w.getnchannels()
+                manifest.update(success=True,model=model,duration_sec=dur,sample_rate=rate,channels=channels,wav_sha256=hashlib.sha256(dest.read_bytes()).hexdigest())
+                manifest['attempts'].append({'model':model,'ok':True})
+                print('SUCCESS',id,model,dur,flush=True)
+                break
+              err=(p.stderr or p.stdout or 'no audio')[-400:]
+            except subprocess.TimeoutExpired:err='timeout-'+str(timeout)
+            except Exception as e:err=type(e).__name__+':'+str(e)[-220:]
+            print('FAILED',id,attempt,model,err[-180:],flush=True)
+            manifest['attempts'].append({'model':model,'error':err})
+            (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+            time.sleep(2)
+          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+          assert manifest['success'],id+' still missing'
+          PY
+      - name: Preserve WAV and QC metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-cat-oreo-short159-recover-a${{ matrix.segment }}
+          path: voice_outputs/tic_cat_oreo_159_missing_a*/
+          if-no-files-found: warn
+          retention-days: 30
