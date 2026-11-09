@@ -43,7 +43,7 @@ jobs:
           for model in models:
               req['profile']['model']=model
               request_path=pathlib.Path('voice_requests/tic_oil_dumplings_20261109_pinned_sdk.json')
-              request_path.write_text(json.dumps(req,ensure_ascii=False,indent=2)+'\\n',encoding='utf-8')
+              request_path.write_text(json.dumps(req,ensure_ascii=False,indent=2),encoding='utf-8')
               print('Trying model:',model,flush=True)
               try:
                   p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(request_path)],capture_output=True,text=True,timeout=160)
