@@ -1,0 +1,57 @@
+name: TIC Hologram 08G One-pass Puck Pinned SDK
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-hologram-08g-onepass-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pinned SDK 2.25.0
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: One-pass approved transcript backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import pathlib, json, subprocess, sys, os, shutil, wave
+          assert os.getenv('GEMINI_API_KEY')
+          req=json.loads(r'''{"text":"えっ、スマホの上に花火が浮いてる！？\nでもこれ、本物の立体映像じゃない！\n秘密は透明なシート。光を少し反射する！\n透明な容器に合う形にシートを切る。\nずれないよう、内側にテープで固定！\n反射の角度が重要。45度は一つの目安！\nスマホに載せると、花火が浮かぶ！","profile":{"model":"gemini-3.8-flash-tts","voice_name":"Puck","style":"成人男性。工作・科学の驚きを伝えるYouTube Shortsナレーション。明るくエネルギッシュ、非常にはっきりした日本語。テンポよく短く歯切れよく、絶叫せずに、原稿を一字一句変えず読む。文と文の区切りをわずかに置く。45度は『よんじゅうごど』と読む。"}}''')
+          lines=json.loads(r'''["えっ、スマホの上に花火が浮いてる！？","でもこれ、本物の立体映像じゃない！","秘密は透明なシート。光を少し反射する！","透明な容器に合う形にシートを切る。","ずれないよう、内側にテープで固定！","反射の角度が重要。45度は一つの目安！","スマホに載せると、花火が浮かぶ！"]''')
+          assert req['text'].split('\n')==lines
+          path=pathlib.Path('voice_requests/tic_hologram_20261109_onepass_sdk225.json')
+          path.write_text(json.dumps(req,ensure_ascii=False),encoding='utf-8')
+          out=pathlib.Path('voice_outputs/tic_hologram_20261109_onepass_sdk225')
+          out.mkdir(parents=True,exist_ok=True)
+          for n in range(1,4):
+              try: p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(path)],capture_output=True,text=True,timeout=280)
+              except subprocess.TimeoutExpired: print('timeout',n,flush=True); continue
+              if p.returncode==0:
+                  wav=pathlib.Path('voice_outputs')/path.stem/'voice.wav'
+                  assert wav.stat().st_size>1000
+                  shutil.copy2(wav,out/'voice.wav')
+                  with wave.open(str(out/'voice.wav'),'rb') as w: duration=w.getnframes()/w.getframerate()
+                  (out/'manifest.json').write_text(json.dumps({'sdk':'google-genai==2.25.0','model':req['profile']['model'],'voice':'Puck','text':req['text'],'duration':duration},ensure_ascii=False),encoding='utf-8')
+                  print('OK duration',duration,flush=True)
+                  break
+              print('failure',n,(p.stderr or '')[-600:],flush=True)
+          else: raise SystemExit('Gemini failed')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-hologram-08g-onepass-sdk225
+          path: voice_outputs/tic_hologram_20261109_onepass_sdk225/
+          if-no-files-found: error
+          retention-days: 30
