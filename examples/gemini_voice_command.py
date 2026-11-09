@@ -149,6 +149,25 @@ def main() -> None:
             data = interaction.output_audio.data
             audio = base64.b64decode(data) if isinstance(data, str) else bytes(data)
             mime_type = "audio/wav"
+        elif model == "gemini-3.1-flash-tts-preview":
+            # Gemini 3.1 TTS is supported through the Interactions API, not
+            # the legacy generate_content speech_config schema.
+            prompt = (
+                f"{style}\n\n"
+                "次の本文だけを、文章を足したり省いたりせず、日本語として自然に読み上げてください。"
+                "指示文や見出しを発声しないでください。\n"
+                "--- 読み上げ本文 ---\n"
+                f"{text}"
+            )
+            interaction = client.interactions.create(
+                model=model,
+                input=prompt,
+                response_format={"type": "audio"},
+                generation_config={"speech_config": [{"voice": voice}]},
+            )
+            data = interaction.output_audio.data
+            audio = base64.b64decode(data) if isinstance(data, str) else bytes(data)
+            mime_type = "audio/L16;rate=24000"
         else:
             # Preserve the legacy request format for older, explicitly pinned jobs.
             prompt = (
