@@ -1,0 +1,85 @@
+name: TIC Squid Lion 08G Gemini TTS SDK 2.25.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-squid-lion-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 36
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate six verbatim Gemini TTS audio segments
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import concurrent.futures,hashlib,json,os,pathlib,shutil,subprocess,sys,time,wave,threading
+          approved=json.loads(r'''["イカが獅子舞の顔に変身！？","まず平らに開き、表面に細かく切れ目を入れる。","切る向きを変えて、格子模様に刻む。","細長く切ったら、熱い鍋へ。","イカが縮むと、切れ目が立体的に開く！","最後は獅子舞！災いを払い、幸運を呼ぶ縁起物！"]''')
+          profile=json.loads(r'''{"model":"gemini-3.8-flash-tts","voice_name":"Puck","style":"日本語の料理Shorts向けナレーション。成人男性の明るく力強い熱血系で、エネルギッシュ、歯切れがよく聞き取りやすい。大声で絶叫せず、親しみやすく自然な抑揚。冒頭は驚き、調理手順はテンポ良く、最後は縁起のよい獅子舞の完成への高揚を込める。少し早口だが日本語の言葉を明瞭に。承認済み本文を一字一句そのまま読み、語句の追加、言い換え、省略、順番変更はしない。"}''')
+          assert len(approved)==6
+          assert os.environ.get('GEMINI_API_KEY'), 'Missing GEMINI_API_KEY secret'
+          out=pathlib.Path('voice_outputs/tic_squid_lion_20261110_sdk225')
+          out.mkdir(parents=True,exist_ok=True)
+          script='\n'.join(approved)
+          (out/'approved_script.txt').write_text(script+'\n',encoding='utf-8')
+          manifest={'sdk':'google-genai==2.25.0','requested_model':profile['model'],'voice':profile['voice_name'],'text_sha256':hashlib.sha256(script.encode('utf-8')).hexdigest(),'lines':[]}
+          lock=threading.Lock()
+          def synthesize(job):
+            idx,script_line=job
+            lid=f's{idx:02d}'
+            models=['gemini-3.8-flash-tts','gemini-3.8-flash-tts','gemini-3.8-flash-lite-tts','gemini-2.5-flash-preview-tts']
+            errors=[]
+            for attempt,model in enumerate(models,1):
+              p2={**profile,'model':model}
+              req=pathlib.Path('voice_requests')/f'tic_squid_lion_20261110_{lid}.json'
+              req.write_text(json.dumps({'text':script_line,'profile':p2},ensure_ascii=False),encoding='utf-8')
+              try:
+                p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=110)
+                wav=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                if p.returncode==0 and wav.is_file() and wav.stat().st_size>1024:
+                  dest=out/f'{lid}.wav'; shutil.copy2(wav,dest)
+                  with wave.open(str(dest),'rb') as w:
+                    duration=w.getnframes()/w.getframerate()
+                    item={'id':lid,'text':script_line,'model':model,'duration':round(duration,5),'rate':w.getframerate(),'channels':w.getnchannels(),'bytes':dest.stat().st_size,'sha256':hashlib.sha256(dest.read_bytes()).hexdigest()}
+                  with lock:
+                    manifest['lines'].append(item)
+                    (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                  print(f'SUCCESS {lid} {model} {duration:.3f} sec',flush=True)
+                  return item
+                err=(p.stderr or '')[-500:]
+                print(f'FAILED {lid} attempt {attempt} {model}: {err}',flush=True)
+                errors.append(err)
+              except Exception as exc:
+                print(f'EXCEPTION {lid} attempt {attempt} {model}: {str(exc)[:240]}',flush=True)
+                errors.append(str(exc)[:300])
+              time.sleep(2*attempt)
+            return {'id':lid,'error':errors[-1] if errors else 'all failed'}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+            results=list(pool.map(synthesize,enumerate(approved,1)))
+          manifest['lines']=sorted(manifest['lines'],key=lambda x:x['id'])
+          manifest['results']=results
+          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          assert len(manifest['lines'])==len(approved), f'Only generated {len(manifest["lines"])}/{len(approved)} WAV files'
+          assert [x['text'] for x in manifest['lines']]==approved
+          print('ALL SIX WAV FILES GENERATED',flush=True)
+          PY
+      - name: Upload all WAV files and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-squid-lion-08g-sdk225-wavs
+          path: voice_outputs/tic_squid_lion_20261110_sdk225/
+          if-no-files-found: error
+          retention-days: 30
