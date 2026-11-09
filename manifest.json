@@ -1,0 +1,155 @@
+{
+  "sdk": "google-genai==2.25.0",
+  "voice": "Puck",
+  "approved_sha256": "eae9ee447ed99d63048786cc091481b7ab6bb1d52c66cb92f78c307af5db41f0",
+  "lines": [
+    {
+      "id": "a14",
+      "text": "次は発射台。厚紙を半分に。",
+      "model": "gemini-2.5-flash-preview-tts",
+      "duration": 3.8109583333333332,
+      "sample_rate": 24000,
+      "size": 182970,
+      "sha256": "83f1a3a1ef3ba5d34861ad24e118e8edfd2d297ee2c18b583d824c3d868897e5"
+    },
+    {
+      "id": "a18",
+      "text": "飛行機を載せて発射！",
+      "model": "gemini-3.8-flash-tts",
+      "duration": 2.68,
+      "sample_rate": 24000,
+      "size": 134758,
+      "sha256": "ab47cd4c4d33963cc5037fbfd505b56ceb7037a4c25df269bc389f1bfb3437f2"
+    }
+  ],
+  "failed": [
+    {
+      "id": "a01",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'model': 'gemini-2.5-flash-tts', 'location': 'global'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54237s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a04",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54237s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a03",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54237s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a02",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54237s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a05",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54026s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a06",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54026s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a08",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'model': 'gemini-2.5-flash-tts', 'location': 'global'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54026s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a07",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'model': 'gemini-2.5-flash-tts', 'location': 'global'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54026s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a09",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '53815s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a10",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '53815s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a12",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'model': 'gemini-2.5-flash-tts', 'location': 'global'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '53815s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a11",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '53814s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a13",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '53604s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a16",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '53603s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a15",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'model': 'gemini-2.5-flash-tts', 'location': 'global'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '53603s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    },
+    {
+      "id": "a17",
+      "errors": [
+        "gemini-3.8-flash-lite-tts:timeout105s",
+        "gemini-2.5-flash-preview-tts:'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-tts'}, 'quotaValue': '10'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '53495s'}]}}\n",
+        "gemini-3.8-flash-tts:timeout105s"
+      ]
+    }
+  ]
+}
