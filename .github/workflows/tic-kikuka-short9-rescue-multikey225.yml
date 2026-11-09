@@ -1,0 +1,83 @@
+name: TIC Kikuka Short9 Rescue Multi Key SDK225
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tic-kikuka-short9-rescue-multikey225.yml']
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Rescue missing eight approved short lines
+        shell: bash
+        run: |
+          python -u - <<'PY'
+          import concurrent.futures,hashlib,json,os,pathlib,subprocess,sys,wave
+          approved=json.loads(r'''["じゃがいもで菊の花！","四角く切り、四隅を落とす。","割り箸を両脇に置き、底を残して細く切る。","90度回して、もう一度切る。","塩水で花びらを開きやすくし、塩気は洗い流す。","水気を拭いて、でんぷん粉をまぶす。","150度の油で揚げる。","トマトソースをかけたら、","菊の花の完成！"]''')
+          assert len(approved)==9
+          keys=list(dict.fromkeys(k.strip() for k in os.environ.get('GEMINI_API_KEYS','').splitlines() if k.strip()))
+          assert keys,'No configured Gemini secret key'
+          print('available distinct keys',len(keys),flush=True)
+          missing=[1,2,3,4,5,7,8,9]
+          out=pathlib.Path('voice_outputs/tic_kikuka_short9_multikey_rescue');out.mkdir(parents=True,exist_ok=True)
+          style='成人男性。料理Shorts向け明るい熱血系。絶叫せず、速すぎず自然な読み上げ速度。文字や句読点を省略・変更・追加せずに読み、指示を読み上げない。'
+          def render(i):
+              line=approved[i-1];lid=f'a{i:02d}';errs=[]
+              models=['gemini-3.1-flash-tts-preview','gemini-3.8-flash-tts','gemini-2.5-flash-preview-tts']
+              for step in range(min(len(keys)*2,10)):
+                  key=keys[(i+step)%len(keys)];model=models[step%len(models)]
+                  req=pathlib.Path('voice_requests')/f'kikuka_rescue_{lid}_{step}.json';req.parent.mkdir(exist_ok=True)
+                  req.write_text(json.dumps({'text':line,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+                  env=dict(os.environ,GEMINI_API_KEY=key)
+                  try: p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],env=env,capture_output=True,text=True,timeout=72)
+                  except subprocess.TimeoutExpired:errs.append(model+':timeout');continue
+                  if p.returncode==0:
+                      src=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                      if src.is_file() and src.stat().st_size>1000:
+                          dst=out/f'{lid}.wav';dst.write_bytes(src.read_bytes())
+                          with wave.open(str(dst),'rb') as w: dur=w.getnframes()/w.getframerate()
+                          return {'id':lid,'text':line,'model':model,'duration_sec':dur,'bytes':dst.stat().st_size,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()},None
+                  errs.append(model+':'+(p.stderr or p.stdout or 'unknown')[-180:])
+              return None,{'id':lid,'errors':errs}
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','approved_lines':approved,'approved_sha256':hashlib.sha256('\n'.join(approved).encode()).hexdigest(),'lines':[],'failures':[]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+              futures=[pool.submit(render,i) for i in missing]
+              for f in concurrent.futures.as_completed(futures):
+                  success,error=f.result()
+                  if success:manifest['lines'].append(success);print('OK',success['id'],success['model'],round(success['duration_sec'],3),flush=True)
+                  else:manifest['failures'].append(error);print('FAIL',error['id'],flush=True)
+                  manifest['lines'].sort(key=lambda e:e['id'])
+                  (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('RESULT',len(manifest['lines']),'of',len(missing),'remaining',len(manifest['failures']),flush=True)
+          assert len(manifest['lines'])==len(missing),'Not all WAVs generated'
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-kikuka-short9-multikey-rescue
+          path: voice_outputs/tic_kikuka_short9_multikey_rescue/
+          if-no-files-found: warn
+          retention-days: 30
