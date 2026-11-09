@@ -1,0 +1,88 @@
+name: TIC Cat Oreo Short159 Rescue Nine Gemini SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-cat-oreo-short159-rescue9-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Rescue only nine missing approved lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import concurrent.futures,json,os,pathlib,subprocess,shutil,wave,hashlib,sys
+          missing=json.loads(r'''[["a03","砂糖と牛乳を混ぜ、こす。"],["a04","穴を開けて25分蒸す。"],["a06","伸ばして練ると、もちもちに。"],["a07","クリームを小分けにして、冷凍して固める。"],["a08","もちで凍らせたクリームを包んで丸める。"],["a09","オレオで挟む。"],["a11","耳とほっぺを色付けて、目と鼻を描く。"],["a12","猫の顔がのぞく、大福の完成！"],["a13","中はチーズクリーム！"]]''')
+          out=pathlib.Path('voice_outputs/tic_cat_oreo_short159_rescue9_v2');out.mkdir(parents=True,exist_ok=True)
+          raw=os.environ.get('GEMINI_API_KEYS','')
+          keys=list(dict.fromkeys(s.strip() for s in raw.splitlines() if s.strip()))
+          if not keys and os.environ.get('GEMINI_API_KEY'):keys=[os.environ['GEMINI_API_KEY']]
+          assert keys,'Gemini Secrets unavailable'
+          print('Available key slots:',len(keys),flush=True)
+          style="成人男性で明るく力強く熱血系、聞き取りやすい日本語Shorts料理ナレーション。速さは自然な通常速度、強制高速化しない。承認済みテキスト以外を追加せず、文を一字一句変えずに読み上げる。"
+          def synth(item):
+              pos,(lid,line)=item
+              errs=[]
+              models=['gemini-3.8-flash-lite-tts','gemini-3.1-flash-tts-preview','gemini-3.8-flash-tts']
+              for k,model in enumerate(models):
+                  for kindex in [pos%len(keys),(pos+1)%len(keys)] if len(keys)>1 else [0]:
+                      dest=pathlib.Path('voice_requests')/f'tic_cat_short159_rescue9_{lid}_{k}_{kindex}.json'
+                      dest.write_text(json.dumps({'text':line,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+                      env=dict(os.environ,GEMINI_API_KEY=keys[kindex])
+                      try:p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(dest)],capture_output=True,text=True,timeout=112,env=env)
+                      except subprocess.TimeoutExpired: errs.append(model+':timeout');continue
+                      if p.returncode:errs.append(model+':'+(p.stderr or p.stdout)[-160:]);continue
+                      src=pathlib.Path('voice_outputs')/dest.stem/'voice.wav'
+                      if not src.is_file() or src.stat().st_size<=2000:errs.append(model+':missing wav');continue
+                      dst=out/f'{lid}.wav';shutil.copy2(src,dst)
+                      with wave.open(str(dst),'rb') as w:d=w.getnframes()/w.getframerate()
+                      return {'id':lid,'text':line,'model':model,'duration':round(d,6),'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()},None
+              return None,{'id':lid,'errors':errs}
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','requests':missing,'lines':[],'failures':[]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+              fs=[pool.submit(synth,it) for it in enumerate(missing)]
+              for f in concurrent.futures.as_completed(fs):
+                  obj,err=f.result()
+                  if obj:manifest['lines'].append(obj);print('OK',obj['id'],obj['duration'],flush=True)
+                  else:manifest['failures'].append(err);print('FAIL',err['id'],flush=True)
+                  manifest['lines'].sort(key=lambda z:z['id'])
+                  (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+          assert len(manifest['lines'])==9,'Remaining missing lines, see artifact'
+          print('SUCCESS ALL 9 RESCUED',flush=True)
+          PY
+      - name: Upload WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-cat-oreo-short159-rescue9-sdk225
+          path: voice_outputs/tic_cat_oreo_short159_rescue9_v2/
+          if-no-files-found: error
+          retention-days: 30
