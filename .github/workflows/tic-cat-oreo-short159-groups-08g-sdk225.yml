@@ -1,0 +1,82 @@
+name: TIC Cat Oreo Short159 Gemini Grouped Rescue SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-cat-oreo-short159-groups-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  grouped:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: SDK pinned
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Gemini voice for grouped consecutive missing lines
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json,hashlib,pathlib,os,subprocess,sys,shutil,wave,concurrent.futures
+          groups=json.loads(r'''[{"id":"g03_04","ids":["a03","a04"],"text":["砂糖と牛乳を混ぜ、こす。","穴を開けて25分蒸す。"]},{"id":"g06_09","ids":["a06","a07","a08","a09"],"text":["伸ばして練ると、もちもちに。","クリームを小分けにして、冷凍して固める。","もちで凍らせたクリームを包んで丸める。","オレオで挟む。"]},{"id":"g11_13","ids":["a11","a12","a13"],"text":["耳とほっぺを色付けて、目と鼻を描く。","猫の顔がのぞく、大福の完成！","中はチーズクリーム！"]}]''')
+          out=pathlib.Path('voice_outputs/tic_cat_short159_grouped_rescue');out.mkdir(parents=True,exist_ok=True)
+          keys=list(dict.fromkeys(k.strip() for k in os.environ.get('GEMINI_API_KEYS','').splitlines() if k.strip()))
+          if not keys:keys=[os.environ['GEMINI_API_KEY']]
+          style="成人男性、明るくエネルギッシュで力強い熱血系。自然な1倍速で短文ごとに明瞭に区切る。各行の間は短い自然な間。本文にない言葉を追加せず、すべての行を句読点含めそのまま順番に読み上げる。強制早口や絶叫をしない。"
+          def work(item):
+              index,group=item
+              text='\n'.join(group['text']); errors=[]
+              for attempt,model in enumerate(['gemini-3.1-flash-tts-preview','gemini-3.8-flash-lite-tts','gemini-3.8-flash-tts']):
+                  key=keys[(index+attempt)%len(keys)]
+                  req=pathlib.Path('voice_requests')/f"tic_cat_grouped_{group['id']}_{attempt}.json"
+                  req.write_text(json.dumps({'text':text,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+                  try:
+                      p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=135,env=dict(os.environ,GEMINI_API_KEY=key))
+                  except subprocess.TimeoutExpired:errors.append(model+':timeout');continue
+                  if p.returncode:errors.append(model+':'+(p.stderr or p.stdout)[-160:]);continue
+                  wav=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                  if not wav.is_file() or wav.stat().st_size<=2000:errors.append(model+':missing WAV');continue
+                  dst=out/f"{group['id']}.wav";shutil.copy2(wav,dst)
+                  with wave.open(str(dst),'rb') as f:d=f.getnframes()/f.getframerate()
+                  return {'id':group['id'],'line_ids':group['ids'],'texts':group['text'],'model':model,'duration':round(d,6),'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()},None
+              return None,{'id':group['id'],'errors':errors}
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','groups':groups,'results':[],'failures':[]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as exe:
+              fs=[exe.submit(work,x) for x in enumerate(groups)]
+              for f in concurrent.futures.as_completed(fs):
+                  good,bad=f.result()
+                  if good:manifest['results'].append(good);print('OK',good['id'],good['duration'],flush=True)
+                  else:manifest['failures'].append(bad);print('FAILED',bad['id'],flush=True)
+                  (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          assert len(manifest['results'])==3
+          print('GROUPS COMPLETE',flush=True)
+          PY
+      - name: Upload grouped WAVs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-cat-short159-grouped-sdk225
+          path: voice_outputs/tic_cat_short159_grouped_rescue/
+          if-no-files-found: error
+          retention-days: 30
