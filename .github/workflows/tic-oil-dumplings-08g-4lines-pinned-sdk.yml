@@ -35,7 +35,7 @@ jobs:
           if not os.getenv("GEMINI_API_KEY"):
               raise SystemExit("Missing GEMINI_API_KEY")
           request = {
-            "text": "\\n".join(lines),
+            "text": "\n".join(lines),
             "profile": {
               "model": "gemini-3.8-flash-tts",
               "voice_name": "Puck",
