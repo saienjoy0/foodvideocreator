@@ -1,0 +1,30 @@
+keys: 1
+ok 1/8 a01 4.68s key#1
+timeout a02 #1
+timeout a02 #2
+timeout a02 #3
+timeout a02 #4
+timeout a02 #5
+timeout a02 #6
+timeout a02 #7
+FAILED a02: timeout 180s
+timeout a03 #1
+timeout a03 #2
+timeout a03 #3
+timeout a03 #4
+timeout a03 #5
+timeout a03 #6
+timeout a03 #7
+FAILED a03: timeout 180s
+timeout a04 #1
+timeout a04 #2
+timeout a04 #3
+timeout a04 #4
+timeout a04 #5
+timeout a04 #6
+timeout a04 #7
+FAILED a04: timeout 180s
+timeout a05 #1
+timeout a05 #2
+timeout a05 #3
+timeout a05 #4
