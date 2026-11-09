@@ -1,0 +1,72 @@
+name: TIC Mouse Fish 08G Gemini TTS SDK225 Puck
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-mouse-fish-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install successful pinned SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate seven approved narration segments
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, pathlib, subprocess, sys, wave, shutil, time, hashlib
+          approved = json.loads("[\"この魚、揚げたらネズミに変身!?\",\"皮を残して、身だけ細かく切る。\",\"水気を取って粉をまぶす。\",\"油で揚げると、切り込みがパッと開く！\",\"皮でつながっているから崩れず、まるで毛並みに！\",\"油を切って、\",\"耳と目としっぽを付けたら、ネズミそっくり！\"]")
+          profile = {'model':'gemini-3.8-flash-tts','voice_name':'Puck','style':"成人男性、明るく力強い熱血系の日本語YouTube Shortsナレーション。中音域でエネルギッシュ、テンポが良く、極めて聞き取りやすい。やや速め、発見への驚きを表現しつつ絶叫・不自然な間・怒鳴り声なし。魚の揚げ料理の工程を楽しく説明する。原稿は文字通り一字一句変えず、省略・追加・言い換えなし。字幕行ごとに独立して読む。"}
+          assert len(approved)==7
+          assert os.getenv('GEMINI_API_KEY'),'Missing secret'
+          out=pathlib.Path('voice_outputs/tic_mouse_fish_20261110_08g')
+          out.mkdir(parents=True,exist_ok=True)
+          manifest={'sdk':'google-genai==2.25.0','model':profile['model'],'voice':'Puck','approved_lines':approved,'approved_sha256':hashlib.sha256('\n'.join(approved).encode('utf-8')).hexdigest(),'lines':[]}
+          for i,s in enumerate(approved,1):
+              lid=f'a{i:02d}'
+              temp=pathlib.Path('voice_requests')/f'tic_mouse_fish_20261110_{lid}.json'
+              temp.parent.mkdir(exist_ok=True)
+              temp.write_text(json.dumps({'text':s,'profile':profile},ensure_ascii=False),encoding='utf-8')
+              error=''
+              for attempt in range(1,4):
+                  try: p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(temp)],capture_output=True,text=True,timeout=200)
+                  except subprocess.TimeoutExpired: error='timeout'; continue
+                  if p.returncode==0:
+                      src=pathlib.Path('voice_outputs')/temp.stem/'voice.wav'
+                      if not src.exists() or src.stat().st_size<1000:
+                          error='WAV missing or empty'; continue
+                      shutil.copy2(src,out/f'{lid}.wav')
+                      with wave.open(str(out/f'{lid}.wav'),'rb') as w:
+                          dur=w.getnframes()/w.getframerate()
+                          sr=w.getframerate(); nc=w.getnchannels()
+                      manifest['lines'].append({'id':lid,'text':s,'duration_sec':round(dur,6),'sample_rate':sr,'channels':nc,'bytes':src.stat().st_size,'sha256':hashlib.sha256(src.read_bytes()).hexdigest()})
+                      (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                      print(f'OK {lid} {dur:.3f}sec',flush=True)
+                      break
+                  error=(p.stderr or p.stdout or 'unknown error')[-900:]
+                  print(f'FAIL {lid} attempt {attempt}: {error}',flush=True)
+                  time.sleep(3*attempt)
+              else:
+                  raise RuntimeError(f'failed {lid}: {error}')
+          assert len(manifest['lines'])==7
+          print('SUCCESS 7 WAV, SHA-256=',manifest['approved_sha256'],flush=True)
+          PY
+      - name: Upload WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-mouse-fish-08g-sdk225
+          path: voice_outputs/tic_mouse_fish_20261110_08g/
+          if-no-files-found: error
+          retention-days: 30
