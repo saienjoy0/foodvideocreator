@@ -1,0 +1,36 @@
+name: TIC Egg Sticks 08G Natural Short v2
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-egg-sticks-08g-natural-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pinned SDK 2.25.0
+        run: python -m pip install -q 'google-genai==2.25.0'
+      - name: Generate shortened approved script at natural rate (no atempo)
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p voice_outputs/tic_egg_sticks_20261110_natural_short_v2
+          python -u scripts/tic_egg_sticks_08g_natural_v2.py 2>&1 | tee voice_outputs/tic_egg_sticks_20261110_natural_short_v2/run.log
+      - name: Publish all generated WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-egg-sticks-natural-short-v2
+          path: voice_outputs/tic_egg_sticks_20261110_natural_short_v2/
+          retention-days: 30
+          if-no-files-found: error
