@@ -1,0 +1,97 @@
+name: TIC Caramel Short7 Gemini Direct SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-caramel-short7-direct225.yml'
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin known successful Gemini SDK
+        run: pip install 'google-genai==2.25.0'
+      - name: Generate approved short seven phrases without speedup
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p voice_outputs/caramel_short7_direct225
+          cat > /tmp/caramel_short7.py <<'PY'
+          import json, os, pathlib, subprocess, sys, wave, time, hashlib
+          req=json.loads(pathlib.Path("voice_batches/tic_caramel_egg_pudding_20261110_short7_natural_v2.json").read_text(encoding="utf8"))
+          texts=[a["text"] for a in req["lines"]]
+          assert texts == ["材料3つで焼きプリン！","表面こんがり、中はとろとろ。","卵2個。","牛乳150ミリ。","砂糖大さじ1。優しく混ぜる。","型に注ぐ。","180度で15分焼けば完成！"]
+          out=pathlib.Path("voice_outputs/caramel_short7_direct225")
+          out.mkdir(parents=True,exist_ok=True)
+          (out/"approved.json").write_text(json.dumps(req,ensure_ascii=False,indent=2),encoding="utf8")
+          models=["gemini-3.8-flash-tts","gemini-2.5-flash-preview-tts","gemini-3.1-flash-tts-preview"]
+          style=req["profile"]["style"]
+          profile=req["profile"]
+          def run(text,filename,model):
+              p=dict(profile,model=model,style=style)
+              inp={"text":text,"output_path":str((out/filename).resolve()),"profile":p}
+              try:
+                  r=subprocess.run([sys.executable,"examples/gemini_voice_command.py"],input=json.dumps(inp,ensure_ascii=False),text=True,capture_output=True,timeout=105)
+                  if r.returncode!=0:
+                      print("FAILED",filename,model,r.stderr[-700:],flush=True)
+                      return None
+                  with wave.open(str(out/filename),"rb") as w: dur=w.getnframes()/w.getframerate()
+                  print("GENERATED",filename,model,round(dur,3),flush=True)
+                  return dur
+              except subprocess.TimeoutExpired:
+                  print("TIMEOUT",filename,model,flush=True)
+                  return None
+          duration=None
+          used=None
+          whole="\n".join(texts)
+          for model in models:
+              dur=run(whole,"whole.wav",model)
+              if dur is not None and dur<=19.35:
+                  duration=dur
+                  used=model
+                  break
+              if dur is not None:
+                  print("FULL_AUDIO_TOO_LONG",round(dur,3),flush=True)
+          if duration is None:
+              print("Full narration unavailable or longer than video; attempting independent phrase WAVs",flush=True)
+              durations=[]
+              models_used=[]
+              for i,txt in enumerate(texts,1):
+                  d=None
+                  for model in models:
+                      d=run(txt,f"a{i:02d}.wav",model)
+                      if d is not None:
+                          models_used.append(model)
+                          break
+                  durations.append(d)
+                  if d is None:
+                      print("CANNOT_SYNTHESIZE",i,flush=True)
+              if all(x is not None for x in durations):
+                  used="per_line"
+                  duration=sum(durations)
+          meta={"approved_texts":texts,"approved_sha256":hashlib.sha256("\n".join(texts).encode()).hexdigest(),"sdk":"google-genai==2.25.0","voice":"Puck","generation_mode":used,"duration_seconds":duration}
+          (out/"manifest.json").write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding="utf8")
+          if duration is None:
+              print("INCOMPLETE",flush=True)
+              sys.exit(1)
+          print("SUCCESS",used,round(duration,3),flush=True)
+          
+          PY
+          python -u /tmp/caramel_short7.py 2>&1 | tee voice_outputs/caramel_short7_direct225/run.log
+      - name: Upload WAV and manifest including partial failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-caramel-short7-direct225
+          path: voice_outputs/caramel_short7_direct225/
+          if-no-files-found: warn
+          retention-days: 30
