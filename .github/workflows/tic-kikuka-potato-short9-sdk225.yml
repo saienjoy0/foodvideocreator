@@ -1,0 +1,88 @@
+name: TIC Kikuka Potato Short9 Gemini TTS Puck SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-kikuka-potato-short9-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install fixed successful SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate 9 approved natural-paced lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import concurrent.futures
+          import hashlib, json, os, pathlib, shutil, subprocess, sys, wave
+          approved=json.loads(r'''["じゃがいもで菊の花！","四角く切り、四隅を落とす。","割り箸を両脇に置き、底を残して細く切る。","90度回して、もう一度切る。","塩水で花びらを開きやすくし、塩気は洗い流す。","水気を拭いて、でんぷん粉をまぶす。","150度の油で揚げる。","トマトソースをかけたら、","菊の花の完成！"]''')
+          assert len(approved)==9
+          assert os.environ.get('GEMINI_API_KEY'), 'Missing Gemini secret'
+          style="成人男性。明るく力強い料理Shortsの熱血系。早口・倍速・無理な時間圧縮は禁止。自然なテンポ、発音明瞭、楽しそうに読んでください。過剰に叫ばない。読み上げる文章は一字一句変更・省略・追加しない。音声内に指示文を含めない。"
+          out=pathlib.Path('voice_outputs/tic_kikuka_potato_20261110_short9')
+          out.mkdir(parents=True,exist_ok=True)
+          def render(pair):
+              i,line=pair
+              lid=f'a{i:02d}'
+              errors=[]
+              models=['gemini-3.1-flash-tts-preview','gemini-3.8-flash-lite-tts','gemini-3.1-flash-tts-preview','gemini-2.5-flash-preview-tts']
+              for attempt,model in enumerate(models,1):
+                  req=pathlib.Path('voice_requests')/f'tic_kikuka_short9_{lid}_{attempt}.json'
+                  req.parent.mkdir(exist_ok=True)
+                  req.write_text(json.dumps({'text':line,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+                  try:
+                      p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=105)
+                  except subprocess.TimeoutExpired:
+                      errors.append(f'{model}:timeout')
+                      continue
+                  if p.returncode!=0:
+                      errors.append(f'{model}:{(p.stderr or p.stdout)[-350:]}')
+                      continue
+                  src=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+                  if not src.exists() or src.stat().st_size<1000:
+                      errors.append(f'{model}:wav-missing')
+                      continue
+                  dst=out/f'{lid}.wav'
+                  shutil.copy2(src,dst)
+                  with wave.open(str(dst),'rb') as w:
+                      dur=w.getnframes()/w.getframerate()
+                      sr=w.getframerate()
+                      nc=w.getnchannels()
+                  return {'id':lid,'text':line,'model':model,'duration_sec':round(dur,6),'sample_rate':sr,'channels':nc,'bytes':dst.stat().st_size,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()},None
+              return None,{'id':lid,'failures':errors}
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','approved_lines':approved,'approved_sha256':hashlib.sha256('\n'.join(approved).encode()).hexdigest(),'lines':[],'failures':[]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+              futures=[executor.submit(render, pair) for pair in enumerate(approved,1)]
+              for future in concurrent.futures.as_completed(futures):
+                  good,bad=future.result()
+                  if good:
+                      manifest['lines'].append(good)
+                      print('OK',good['id'],good['model'],good['duration_sec'],flush=True)
+                  else:
+                      manifest['failures'].append(bad)
+                      print('FAIL',json.dumps(bad,ensure_ascii=False),flush=True)
+                  manifest['lines'].sort(key=lambda x:x['id'])
+                  (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          assert [x['id'] for x in manifest['lines']]==[f'a{i:02d}' for i in range(1,10)],'Missing WAVs'
+          print('SUCCESS all nine WAVs',manifest['approved_sha256'],flush=True)
+          PY
+      - name: Upload WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-kikuka-potato-short9-sdk225
+          path: voice_outputs/tic_kikuka_potato_20261110_short9/
+          if-no-files-found: error
+          retention-days: 30
