@@ -1,0 +1,70 @@
+name: TIC Oil Dumplings 08G Four Lines Gemini Pinned
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-oil-dumplings-08g-4lines-pinned-sdk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin working Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Synthesize approved revised four lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, pathlib, subprocess, sys
+          lines = [
+            "この餃子、タレにつけないって知ってた？",
+            "茹でた餃子に唐辛子をたっぷり！刻んだ薬味も加える。",
+            "そこへ熱い油をジュワッ！餃子の上で直接タレを作る。",
+            "全体を混ぜれば味がしっかり絡む！",
+          ]
+          if not os.getenv("GEMINI_API_KEY"):
+              raise SystemExit("Missing GEMINI_API_KEY")
+          request = {
+            "text": "\\n".join(lines),
+            "profile": {
+              "model": "gemini-3.8-flash-tts",
+              "voice_name": "Puck",
+              "style": "明るく熱血な日本語料理Shortsナレーション。20〜30代成人男性、中音〜少し高め。親しみやすく元気でエネルギッシュ、テンション8/10。適度に速く明瞭。『タレにつけない』に驚き、『ジュワッ！』に勢い。絶叫なし。承認済みの4文を一字一句変えず句読点までそのまま読む。"
+            }
+          }
+          path = pathlib.Path("voice_requests/tic_oil_dumplings_4lines_20261109_pinned.json")
+          out = pathlib.Path("voice_outputs/tic_oil_dumplings_4lines_20261109_pinned")
+          out.mkdir(parents=True, exist_ok=True)
+          for model in ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"]:
+              request["profile"]["model"] = model
+              path.write_text(json.dumps(request, ensure_ascii=False, indent=2), encoding="utf-8")
+              print("MODEL", model, flush=True)
+              p = subprocess.run([sys.executable,"scripts/run_voice_request.py",str(path)],capture_output=True,text=True,timeout=180)
+              print(p.stdout[-500:], flush=True)
+              if p.returncode == 0 and (out / "voice.wav").is_file():
+                  assert (out / "voice.wav").stat().st_size > 1000
+                  (out/"approved_text.txt").write_text(request["text"],encoding="utf-8")
+                  print("SUCCESS", model, flush=True)
+                  break
+              print(p.stderr[-900:], flush=True)
+          else:
+              raise SystemExit("Gemini TTS attempts failed")
+          PY
+      - name: Upload WAV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-oil-dumplings-08g-4lines-pinned
+          path: voice_outputs/tic_oil_dumplings_4lines_20261109_pinned/
+          if-no-files-found: error
+          retention-days: 30
