@@ -1,0 +1,71 @@
+name: TIC Squid Lion 08G Six Independent Gemini Puck WAVs SDK225
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tic-squid-lion-08g-six-matrix-retry.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    strategy:
+      fail-fast: false
+      matrix:
+        index: [1,2,3,4,5,6]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SEGMENT_ID: ${{ matrix.index }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned SDK
+        run: python -m pip install -q 'google-genai==2.25.0'
+      - name: Generate and QA exact approved WAV
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import os,sys,subprocess,pathlib,json,hashlib,shutil,time,wave
+          lines=["イカが獅子舞に！？","細かく切れ目を入れ、","向きを変えて格子模様に。","細長く切って、鍋へ。","熱で縮み、模様が開く！","厄を払い、福を呼ぶ獅子舞！"]
+          i=int(os.environ['SEGMENT_ID']);assert 1<=i<=6
+          s=lines[i-1];id=f"s{i:02d}"
+          out=pathlib.Path('voice_outputs')/f'tic_squid_lion_08g_matrix_{id}';out.mkdir(parents=True,exist_ok=True)
+          style="日本語料理Shortsの成人男性。Puckの自然で力強い明るい声。早口にならず、一語ずつはっきり、過剰な絶叫なし。文言の追加・省略・言い換えは厳禁。本文だけを読む。"
+          manifest={'index':i,'text':s,'sdk':'google-genai==2.25.0','voice':'Puck','success':False,'attempts':[]}
+          req=pathlib.Path('voice_requests')/f'tic_squid_lion_08g_matrix_{id}.json'
+          model_order=['gemini-3.1-flash-tts-preview','gemini-3.8-flash-tts','gemini-3.1-flash-tts-preview','gemini-3.8-flash-tts','gemini-3.1-flash-tts-preview']
+          for attempt,model in enumerate(model_order,1):
+            req.write_text(json.dumps({'text':s,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+            try:
+              p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=75,env=os.environ)
+              wav=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+              if p.returncode==0 and wav.exists() and wav.stat().st_size>1500:
+                shutil.copy2(wav,out/'voice.wav')
+                with wave.open(str(out/'voice.wav'),'rb') as w: dur=w.getnframes()/w.getframerate()
+                manifest.update(success=True,model=model,duration_sec=dur,wav_sha256=hashlib.sha256((out/'voice.wav').read_bytes()).hexdigest())
+                manifest['attempts'].append({'model':model,'ok':True})
+                print('SUCCESS',id,model,dur,flush=True)
+                break
+              error=(p.stderr or p.stdout or 'no audio')[-600:]
+            except subprocess.TimeoutExpired:error='timeout75sec'
+            except Exception as e:error=type(e).__name__+':'+str(e)[-350:]
+            print('FAILED',id,attempt,model,error[-240:],flush=True)
+            manifest['attempts'].append({'model':model,'error':error})
+            (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+            time.sleep(3)
+          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+          assert manifest['success'],id+' failed all Gemini attempts'
+          
+          PY
+      - name: Upload per-line artifact even if incomplete
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-squid-lion-08g-s${{ matrix.index }}
+          path: voice_outputs/tic_squid_lion_08g_matrix_s0${{ matrix.index }}/
+          if-no-files-found: warn
+          retention-days: 30
