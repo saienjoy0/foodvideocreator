@@ -1,0 +1,65 @@
+name: TIC Cat Oreo Short159 Final4 SDK225 Pro TTS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-cat-oreo-short159-final4-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install SDK 2.25.0
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Four missing 08G natural voice lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import concurrent.futures,json,os,sys,pathlib,subprocess,hashlib,shutil,wave
+          reqs=json.loads(r'''[["a03","砂糖と牛乳を混ぜ、こす。"],["a04","穴を開けて25分蒸す。"],["a11","耳とほっぺを色付けて、目と鼻を描く。"],["a13","中はチーズクリーム！"]]''')
+          out=pathlib.Path('voice_outputs/tic_cat_short159_last4');out.mkdir(parents=True,exist_ok=True)
+          style="日本語成人男性、力強く明るい料理Shortsナレーション。音声を速くしない。聞き取りやすく自然な話速。言葉を足さず、指定の文章を省略・言い換えせず正確に読み上げる。"
+          def work(item):
+            i,(lid,text)=item;errors=[]
+            for a,model in enumerate(['gemini-2.5-pro-preview-tts','gemini-3.8-flash-tts','gemini-3.1-flash-tts-preview','gemini-3.8-flash-lite-tts']):
+              req=pathlib.Path('voice_requests')/f'tic_cat_final4_{lid}_{a}.json'
+              req.write_text(json.dumps({'text':text,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+              try: p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(req)],capture_output=True,text=True,timeout=125)
+              except subprocess.TimeoutExpired: errors.append(model+':timeout');continue
+              if p.returncode:errors.append(model+':'+(p.stderr or p.stdout)[-280:]);continue
+              src=pathlib.Path('voice_outputs')/req.stem/'voice.wav'
+              if not src.is_file() or src.stat().st_size<2000:errors.append(model+':missing');continue
+              dst=out/f'{lid}.wav';shutil.copy2(src,dst)
+              with wave.open(str(dst),'rb') as w:d=w.getnframes()/w.getframerate()
+              return {'id':lid,'text':text,'model':model,'duration':d,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()},None
+            return None,{'id':lid,'errors':errors}
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','lines':[],'failures':[]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as exe:
+            fs=[exe.submit(work,item) for item in enumerate(reqs)]
+            for f in concurrent.futures.as_completed(fs):
+              good,bad=f.result()
+              if good:manifest['lines'].append(good);print('OK',good['id'],good['model'],good['duration'],flush=True)
+              else:manifest['failures'].append(bad);print('FAIL',bad['id'],flush=True)
+              manifest['lines'].sort(key=lambda x:x['id'])
+              (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          assert len(manifest['lines'])==4,'Missing clips'
+          print('ALL FOUR COMPLETED',flush=True)
+          PY
+      - name: Upload WAVs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-cat-short159-last4-sdk225
+          path: voice_outputs/tic_cat_short159_last4/
+          if-no-files-found: error
+          retention-days: 30
