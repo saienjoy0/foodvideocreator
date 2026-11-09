@@ -1,0 +1,78 @@
+name: TIC Egg Sticks 08G Parallel Natural v3
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-egg-sticks-08g-parallel-natural-v3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Use exact proven SDK 2.25.0
+        run: python -m pip install -q 'google-genai==2.25.0'
+      - name: Parallel natural-speed generation of approved SHORT script
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p voice_outputs/tic_egg_sticks_20261110_parallel_v3
+          python -u - <<'PY' 2>&1 | tee voice_outputs/tic_egg_sticks_20261110_parallel_v3/run.log
+          import concurrent.futures as cf,hashlib,json,os,pathlib,shutil,subprocess,sys,wave,time
+          req_path=pathlib.Path('voice_batches/tic_egg_sticks_20261110_natural_short_v2.json')
+          req=json.loads(req_path.read_text(encoding='utf-8'))
+          assert len(req['lines'])==11 and req['profile']['voice_name']=='Puck'
+          out=pathlib.Path('voice_outputs/tic_egg_sticks_20261110_parallel_v3')
+          out.mkdir(exist_ok=True,parents=True)
+          models=['gemini-3.1-flash-tts-preview','gemini-3.8-flash-lite-tts','gemini-2.5-flash-preview-tts']
+          def make(row):
+            lid=row['id']; errors=[]
+            for attempt,model in enumerate(models,1):
+              profile=dict(req['profile'],model=model)
+              p=pathlib.Path('voice_requests')/f'tic_egg_sticks_parallel_v3_{lid}_{attempt}.json'
+              p.parent.mkdir(exist_ok=True)
+              p.write_text(json.dumps({'text':row['text'],'profile':profile},ensure_ascii=False),encoding='utf-8')
+              try:
+                proc=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(p)],capture_output=True,text=True,timeout=105)
+                if proc.returncode: raise RuntimeError((proc.stderr or proc.stdout)[-300:])
+                src=pathlib.Path('voice_outputs')/p.stem/'voice.wav'
+                if not src.exists() or src.stat().st_size<1000:raise RuntimeError('no wav')
+                dst=out/f'{lid}.wav';shutil.copy2(src,dst)
+                with wave.open(str(dst),'rb') as w:
+                  duration=w.getnframes()/w.getframerate()
+                  rate=w.getframerate()
+                  channels=w.getnchannels()
+                return {'id':lid,'text':row['text'],'model':model,'duration':round(duration,6),'rate':rate,'channels':channels,'bytes':dst.stat().st_size,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest()},None
+              except Exception as e:
+                errors.append(f'{model}: {type(e).__name__} {str(e)[-350:]}')
+            return None,{'id':lid,'error':errors}
+          manifest={'sdk':'google-genai==2.25.0','voice':'Puck','source_request':str(req_path),'natural_speed':True,'atempo_applied':False,'lines':[],'failed':[]}
+          with cf.ThreadPoolExecutor(max_workers=5) as pool:
+            futs=[pool.submit(make,row) for row in req['lines']]
+            for f in cf.as_completed(futs):
+              good,bad=f.result()
+              if good:
+                manifest['lines'].append(good);print('OK',good['id'],good['duration'],good['model'],flush=True)
+              else:
+                manifest['failed'].append(bad);print('FAIL',bad,flush=True)
+              manifest['lines'].sort(key=lambda x:x['id'])
+              (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          if len(manifest['lines'])!=11:raise SystemExit('only '+str(len(manifest['lines']))+' of 11 wav files')
+          print('SUCCESS 11/11',flush=True)
+          PY
+      - name: Upload WAV artifact and manifest even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-egg-sticks-natural-parallel-v3
+          path: voice_outputs/tic_egg_sticks_20261110_parallel_v3/
+          retention-days: 30
+          if-no-files-found: error
