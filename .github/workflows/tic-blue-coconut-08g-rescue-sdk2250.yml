@@ -1,0 +1,86 @@
+name: TIC Blue Coconut 08G Rescue SDK 2.25.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-blue-coconut-08g-rescue-sdk2250.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install proven SDK 2.25.0
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Probe supported TTS models and synthesize approved lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import concurrent.futures as cf
+          import json, os, pathlib, shutil, subprocess, sys, time, wave
+          req=json.loads(pathlib.Path("tic_requests/tic_blue_coconut_20261110_08g.json").read_text(encoding="utf-8"))
+          assert len(req["lines"]) == 12 and req["profile"]["voice_name"] == "Puck"
+          assert os.environ.get("GEMINI_API_KEY")
+          out=pathlib.Path("voice_outputs/tic_blue_coconut_08g_rescue")
+          out.mkdir(parents=True,exist_ok=True)
+          models=["gemini-3.8-flash-lite-tts","gemini-2.5-flash-preview-tts"]
+          profile=req["profile"]
+          def one(row,model,suffix,timeout=95):
+              sub=dict(profile,model=model)
+              fname="tic_blue_coconut_20261110_r_"+suffix
+              dest=pathlib.Path("voice_requests")/(fname+".json")
+              dest.write_text(json.dumps({"text":row["text"],"profile":sub},ensure_ascii=False),encoding="utf-8")
+              try:
+                  p=subprocess.run([sys.executable,"scripts/run_voice_request.py",str(dest)],capture_output=True,text=True,timeout=timeout)
+                  wav=pathlib.Path("voice_outputs")/fname/"voice.wav"
+                  if p.returncode == 0 and wav.exists() and wav.stat().st_size>1000:
+                      return {"ok":True,"model":model,"wav":str(wav),"error":""}
+                  return {"ok":False,"model":model,"error":p.stderr[-600:]}
+              except Exception as e:return {"ok":False,"model":model,"error":str(e)[-600:]}
+          with cf.ThreadPoolExecutor(max_workers=2) as ex:
+              fut=[ex.submit(one,req["lines"][0],m,"probe"+str(i),95) for i,m in enumerate(models)]
+              results=[x.result() for x in fut]
+          print("PROBES",[(x["model"],x["ok"],x.get("error","")) for x in results],flush=True)
+          good=[x for x in results if x["ok"]]
+          if not good:raise SystemExit("Both model probes failed")
+          chosen=good[0]
+          model=chosen["model"]
+          shutil.copy2(chosen["wav"],out/"a01.wav")
+          manifest={"sdk":"google-genai==2.25.0","model":model,"voice":"Puck","fallback_from":"gemini-3.8-flash-tts","lines":[]}
+          for i,row in enumerate(req["lines"]):
+              lid=row["id"]
+              if i:
+                  result=one(row,model,lid,120)
+                  if not result["ok"]:
+                      print("RETRY",lid,result["error"],flush=True)
+                      time.sleep(4)
+                      result=one(row,model,lid+"retry",120)
+                  if not result["ok"]:
+                      print("FAILED",lid,result["error"],flush=True)
+                      raise SystemExit("Failed "+lid)
+                  shutil.copy2(result["wav"],out/(lid+".wav"))
+              with wave.open(str(out/(lid+".wav")),"rb") as wf:
+                  duration=wf.getnframes()/wf.getframerate()
+                  meta={"id":lid,"text":row["text"],"duration":round(duration,5),"rate":wf.getframerate(),"channels":wf.getnchannels()}
+              manifest["lines"].append(meta)
+              (out/"manifest.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+              print("OK",lid,model,round(duration,3),flush=True)
+          print("ALL",len(manifest["lines"]),"COMPLETE",flush=True)
+          PY
+      - name: Upload generated WAV files and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-blue-coconut-08g-rescue-sdk2250
+          path: voice_outputs/tic_blue_coconut_08g_rescue/
+          if-no-files-found: error
+          retention-days: 30
