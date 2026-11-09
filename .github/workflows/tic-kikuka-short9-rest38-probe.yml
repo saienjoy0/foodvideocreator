@@ -1,0 +1,50 @@
+name: TIC Kikuka Gemini 3.8 REST TTS quota probe SDK225
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tic-kikuka-short9-rest38-probe.yml']
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'google-genai==2.25.0' requests
+      - name: Test official Gemini 3.8 flash and lite TTS model quota
+        shell: bash
+        run: |
+          python -u - <<'PY'
+          import os,requests,pathlib,wave,base64,json
+          text='じゃがいもで菊の花！'
+          out=pathlib.Path('voice_outputs/kikuka_rest38');out.mkdir(exist_ok=True,parents=True)
+          for model in ['gemini-3.8-flash-lite-tts','gemini-3.8-flash-tts']:
+              payload={'model':model,'input':[{'type':'user_input','content':[{'type':'text','text':text,'annotations':[{'type':'speech_metadata','style':'Energetic adult Japanese male, natural normal pace, no shouting'}]}]}],'response_format':{'type':'audio'},'generation_config':{'speech_config':[{'voice':'Puck'}]}}
+              try:
+                  response=requests.post('https://generativelanguage.googleapis.com/v1beta/interactions',headers={'x-goog-api-key':os.environ['GEMINI_API_KEY'],'Content-Type':'application/json'},json=payload,timeout=30)
+              except requests.exceptions.Timeout:
+                  print('TIMEOUT',model,flush=True);continue
+              print(model,'HTTP',response.status_code,'details',(response.text[:250] if response.status_code!=200 else 'audio received'),flush=True)
+              if response.status_code!=200:continue
+              raw=response.json().get('output_audio',{}).get('data')
+              if not raw:
+                  print('No inline audio',flush=True);continue
+              audio=base64.b64decode(raw)
+              with wave.open(str(out/'a01.wav'),'wb') as w:
+                  w.setnchannels(1);w.setsampwidth(2);w.setframerate(24000);w.writeframes(audio)
+              print('SUCCESS',model,len(audio),flush=True);break
+          else:raise RuntimeError('All Gemini 3.8 options failed')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-kikuka-rest38-a01
+          path: voice_outputs/kikuka_rest38/
+          if-no-files-found: warn
+          retention-days: 30
