@@ -1,0 +1,41 @@
+name: TIC Cat Oreo 08G run audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-cat-oreo-run-audit.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check original and batch runs by exact commit SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p voice_results
+          gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=d1774454e36fb19098c6944af40ba448cea86cbc&per_page=30" > voice_results/cat_run_one_raw.json
+          gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=7fef33cb608b53d9e4d2060dadeee951f7eb991b&per_page=30" > voice_results/cat_run_batch_raw.json
+          python - <<'PY'
+          import json,pathlib
+          p=pathlib.Path('voice_results')
+          report={}
+          for n in ['one','batch']:
+              raw=json.loads((p/f'cat_run_{n}_raw.json').read_text())
+              report[n]=[{'id':r['id'],'name':r['name'],'status':r['status'],'conclusion':r['conclusion'],'html_url':r['html_url'],'created_at':r['created_at'],'updated_at':r['updated_at']} for r in raw['workflow_runs']]
+          (p/'tic_cat_oreo_run_audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+          print(report)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add voice_results/tic_cat_oreo_run_audit.json
+          git commit -m 'audit: TIC cat Oreo Gemini actions [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
