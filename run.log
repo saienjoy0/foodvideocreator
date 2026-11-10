@@ -1,0 +1,12 @@
+keys: 1
+ok 1/6 s01 2.08s key#1
+ok 2/6 s02 2.48s key#1
+ok 3/6 s03 2.92s key#1
+ok 4/6 s04 2.16s key#1
+ok 5/6 s05 1.88s key#1
+ok 6/6 s06 2.60s key#1
+remote: 
+remote: Create a pull request for 'voice-out/tic_buntan_monster_20261110_08g_v1' on GitHub by visiting:        
+remote:      https://github.com/saienjoy0/foodvideocreator/pull/new/voice-out/tic_buntan_monster_20261110_08g_v1        
+remote: 
+done: 6 ok, 0 failed
