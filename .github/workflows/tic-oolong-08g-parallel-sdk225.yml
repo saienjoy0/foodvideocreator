@@ -6,7 +6,7 @@ on:
       - '.github/workflows/tic-oolong-08g-parallel-sdk225.yml'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   tts:
     runs-on: ubuntu-latest
@@ -70,9 +70,30 @@ jobs:
           PY
       - name: Upload WAVs and manifest
         if: always()
+        id: wavs
         uses: actions/upload-artifact@v4
         with:
           name: tic-oolong-08g-rescue-sdk225
           path: voice_outputs/tic_oolong_udon_baked_milk_20261111_08g_rescue225/
           if-no-files-found: error
           retention-days: 30
+      - name: Publish run and artifact pointer
+        if: success()
+        shell: bash
+        env:
+          RUN_ID: ${{ github.run_id }}
+          ARTIFACT_ID: ${{ steps.wavs.outputs.artifact-id }}
+        run: |
+          set -euo pipefail
+          mkdir -p voice_results
+          python - <<'PY'
+          import os,json,pathlib
+          payload={'status':'completed','workflow_run_id':int(os.environ['RUN_ID']),'artifact_id':int(os.environ['ARTIFACT_ID']),'artifact_name':'tic-oolong-08g-rescue-sdk225','sdk':'google-genai==2.25.0','voice':'Puck','lines':12}
+          pathlib.Path('voice_results/tic_oolong_udon_baked_milk_20261111_08g_rescue225.json').write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add voice_results/tic_oolong_udon_baked_milk_20261111_08g_rescue225.json
+          git commit -m 'voice result: tic oolong rescue [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
