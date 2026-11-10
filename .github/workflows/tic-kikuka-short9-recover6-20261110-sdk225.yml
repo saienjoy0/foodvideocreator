@@ -1,0 +1,85 @@
+name: TIC Kikuka Short9 Recover Six Gemini SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-kikuka-short9-recover6-20261110-sdk225.yml'
+permissions:
+  contents: read
+jobs:
+  generate:
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        number: [1, 2, 3, 5, 7, 9]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin Gemini SDK 2.25.0
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Synthesize one exact approved line in a natural speaking pace
+        env:
+          NUM: ${{ matrix.number }}
+        shell: bash
+        run: |
+          python -u - <<'PY'
+          import hashlib,json,os,pathlib,subprocess,sys,wave
+          approved=json.loads(r'''["じゃがいもで菊の花！","四角く切り、四隅を落とす。","割り箸を両脇に置き、底を残して細く切る。","90度回して、もう一度切る。","塩水で花びらを開きやすくし、塩気は洗い流す。","水気を拭いて、でんぷん粉をまぶす。","150度の油で揚げる。","トマトソースをかけたら、","菊の花の完成！"]''')
+          assert len(approved)==9
+          idx=int(os.environ['NUM'])
+          lid=f'a{idx:02d}'
+          text=approved[idx-1]
+          out=pathlib.Path('voice_outputs/kikuka_short9_recover_20261110')
+          out.mkdir(exist_ok=True,parents=True)
+          models=['gemini-2.5-flash-preview-tts','gemini-3.8-flash-lite-tts','gemini-3.1-flash-tts-preview']
+          style='日本語の料理Shorts向け。成人男性で明るく力強い熱血系、ただし絶叫しない。自然な普段の読み上げ速度で、早口にも倍速にもならない。発音明瞭。指定した一文のみを句読点まで一字一句変えずに読む。指示文は読まない。'
+          checks=[]
+          for attempt,model in enumerate(models,1):
+              request=pathlib.Path('voice_requests')/f'tic_kikuka_short9_recover_{lid}_{attempt}.json'
+              request.parent.mkdir(parents=True,exist_ok=True)
+              request.write_text(json.dumps({'text':text,'profile':{'model':model,'voice_name':'Puck','style':style}},ensure_ascii=False),encoding='utf-8')
+              print('TRY',lid,model,flush=True)
+              try:
+                  p=subprocess.run([sys.executable,'scripts/run_voice_request.py',str(request)],capture_output=True,text=True,timeout=130)
+              except subprocess.TimeoutExpired:
+                  checks.append({'model':model,'error':'timeout'})
+                  print('TIMEOUT',lid,model,flush=True)
+                  continue
+              if p.returncode:
+                  error=(p.stderr or p.stdout or 'unknown error')[-450:]
+                  checks.append({'model':model,'error':error})
+                  print('FAILED',lid,model,error[-180:],flush=True)
+                  continue
+              src=pathlib.Path('voice_outputs')/request.stem/'voice.wav'
+              if not src.exists() or src.stat().st_size<1500:
+                  checks.append({'model':model,'error':'no wav'})
+                  continue
+              dst=out/f'{lid}.wav'
+              dst.write_bytes(src.read_bytes())
+              with wave.open(str(dst),'rb') as wav:
+                  duration=wav.getnframes()/wav.getframerate()
+                  rate=wav.getframerate()
+                  channel=wav.getnchannels()
+              manifest={'id':lid,'text':text,'script':approved,'voice':'Puck','sdk':'google-genai==2.25.0','model':model,'duration':duration,'rate':rate,'channels':channel,'sha256':hashlib.sha256(dst.read_bytes()).hexdigest(),'success':True}
+              (out/f'{lid}.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf8')
+              print('SUCCESS',lid,model,duration,flush=True)
+              break
+          else:
+              (out/f'{lid}.json').write_text(json.dumps({'id':lid,'text':text,'success':False,'checks':checks},ensure_ascii=False,indent=2),encoding='utf8')
+              print('NO WAV',lid,flush=True)
+              raise RuntimeError('Gemini line is still missing '+lid)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-kikuka-short9-recover-${{ matrix.number }}
+          path: voice_outputs/kikuka_short9_recover_20261110/
+          if-no-files-found: warn
+          retention-days: 30
