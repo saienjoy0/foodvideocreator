@@ -1,0 +1,14 @@
+keys: 1
+ok 1/8 a01 4.16s key#1
+ok 2/8 a02 3.52s key#1
+ok 3/8 a03 3.40s key#1
+ok 4/8 a04 2.92s key#1
+ok 5/8 a05 3.00s key#1
+ok 6/8 a06 2.76s key#1
+ok 7/8 a07 4.04s key#1
+ok 8/8 a08 3.28s key#1
+remote: 
+remote: Create a pull request for 'voice-out/tic_giant_meatpie_20261111_08g_v1' on GitHub by visiting:        
+remote:      https://github.com/saienjoy0/foodvideocreator/pull/new/voice-out/tic_giant_meatpie_20261111_08g_v1        
+remote: 
+done: 8 ok, 0 failed
