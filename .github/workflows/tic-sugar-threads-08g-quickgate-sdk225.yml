@@ -1,0 +1,60 @@
+name: TIC Sugar Threads 08G Quick Quota Gate SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-sugar-threads-08g-quickgate-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact prior successful SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Synthesize exact approved four sentences, fail fast on billing cap
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json, pathlib, subprocess, sys, wave, hashlib, os
+          req = json.loads(pathlib.Path("voice_batches/tic_sugar_threads_20261122_08g_v1.json").read_text(encoding="utf-8"))
+          expected=["まるで、空から降る蜘蛛の糸！","熱い砂糖なら、細く伸ばすと","空中で冷えて、そのまま固まる。","こうして料理を包む、繊細な飾りに。"]
+          assert [l["text"] for l in req["lines"]]==expected, "approved text mismatch"
+          assert req["profile"]["voice_name"]=="Puck"
+          assert os.getenv("GEMINI_API_KEY"), "GEMINI_API_KEY secret is missing"
+          out=pathlib.Path("voice_outputs/tic_sugar_threads_20261122_08g_quickgate")
+          out.mkdir(parents=True,exist_ok=True)
+          manifest={"sdk":"google-genai==2.25.0","model":req["profile"]["model"],"voice":"Puck","text_sha256":hashlib.sha256("\n".join(expected).encode("utf-8")).hexdigest(),"segments":[]}
+          for line in req["lines"]:
+            dst=out/(line["id"]+".wav")
+            preq={"text":line["text"],"output_path":str(dst.resolve()),"profile":req["profile"]}
+            result=subprocess.run([sys.executable,"examples/gemini_voice_command.py"],input=json.dumps(preq,ensure_ascii=False),capture_output=True,text=True,timeout=160)
+            if result.returncode:
+              msg=result.stderr.strip()
+              print("Gemini failed for",line["id"],"message:",msg[-1200:],flush=True)
+              raise SystemExit(1)
+            assert dst.exists() and dst.stat().st_size>1024, "Missing WAV"
+            with wave.open(str(dst),"rb") as wf:
+              d=wf.getnframes()/wf.getframerate()
+              print("WAV",line["id"],"seconds",d,flush=True)
+            manifest["segments"].append({"id":line["id"],"text":line["text"],"seconds":d,"file":dst.name})
+          (out/"manifest.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8")
+          print("ALL WAV FILES GENERATED",flush=True)
+          PY
+      - name: Upload real WAVs and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-sugar-threads-08g-quickgate-sdk225
+          path: voice_outputs/tic_sugar_threads_20261122_08g_quickgate/
+          if-no-files-found: warn
+          retention-days: 30
