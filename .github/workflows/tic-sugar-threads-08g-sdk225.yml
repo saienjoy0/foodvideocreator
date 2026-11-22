@@ -1,0 +1,43 @@
+name: TIC Sugar Threads 08G Puck SDK225 Independent
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-sugar-threads-08g-sdk225.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install same successful pinned Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Generate four approved lines without time compression
+        run: |
+          python -u scripts/run_voice_batch.py voice_batches/tic_sugar_threads_20261122_08g_v1.json
+      - name: Upload generated WAV files and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-sugar-threads-08g-puck-sdk225
+          path: voice_outputs/tic_sugar_threads_20261122_08g_v1/
+          if-no-files-found: error
+          retention-days: 30
