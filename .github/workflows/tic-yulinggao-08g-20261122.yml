@@ -1,0 +1,196 @@
+name: TIC Yulinggao 08G SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-yulinggao-08g-20261122.yml'
+permissions:
+  contents: write
+concurrency:
+  group: tic-yulinggao-20261122-08g-only
+  cancel-in-progress: false
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      STEM: tic_yulinggao_20261122_08g_v1
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned SDK
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q 'google-genai==2.25.0'
+          .venv/bin/python -c 'import importlib.metadata as m; assert m.version("google-genai") == "2.25.0"'
+      - name: Prepare exact approved 20-line voice request
+        run: |
+          mkdir -p voice_batches "voice_outputs/$STEM"
+          cat > "voice_batches/$STEM.json" <<'APPROVED_JSON'
+          {
+            "profile": {
+              "model": "gemini-3.8-flash-tts",
+              "voice_name": "Puck",
+              "style": "成人男性、力強く熱血系でエネルギッシュだが過剰に叫ばず、聞き取りやすい自然な日本語の料理ナレーション。口先の過剰な演技や感嘆詞を入れず、映像の変化を落ち着きと芯のある抑揚で伝える。決して早口にせず、尺合わせの倍速・強制高速化を一切しない。各文を自然な速度で発音し、間を取り、読み上げるのは以下の本文だけ。句読点、語順、文章、数字を変更・追加・省略しない。"
+            },
+            "lines": [
+              {
+                "id": "s01",
+                "text": "この白い果肉、3日後には真っ黒なペーストになる。"
+              },
+              {
+                "id": "s02",
+                "text": "中国の薬膳ペースト、玉霊膏。甘い果物リュウガンの皮と種を取り、果肉だけを残す。"
+              },
+              {
+                "id": "s03",
+                "text": "果肉を竹ざるに並べて、火を通す。"
+              },
+              {
+                "id": "s04",
+                "text": "もうひとつの材料は西洋人参。掘り出した根の土を水で洗い落とす。"
+              },
+              {
+                "id": "s05",
+                "text": "先に火を通したリュウガンは、こんな飴色に変わっている。"
+              },
+              {
+                "id": "s06",
+                "text": "西洋人参は薄く切って乾かす。水分を抜けば、粉にしやすい。"
+              },
+              {
+                "id": "s07",
+                "text": "乾いた根をつき砕き、石臼で細かな粉に。"
+              },
+              {
+                "id": "s08",
+                "text": "配合はリュウガン10に対して、西洋人参1。少しずつ粉を果肉にまぶす。"
+              },
+              {
+                "id": "s09",
+                "text": "混ぜた材料を小皿に分け、布で覆う。"
+              },
+              {
+                "id": "s10",
+                "text": "紫米も用意し、蒸し器を重ねる。ここからが一番時間のかかる工程。"
+              },
+              {
+                "id": "s11",
+                "text": "72時間。3日かけてじっくり蒸す。"
+              },
+              {
+                "id": "s12",
+                "text": "2日目。赤茶色だった果肉は、さらに濃い茶色へ。"
+              },
+              {
+                "id": "s13",
+                "text": "焦げたんじゃない。果肉の糖とアミノ酸が熱で反応して、色が変わる。"
+              },
+              {
+                "id": "s14",
+                "text": "3日目には、ひと粒ずつだった果肉が、黒くねっとりしたペーストに。"
+              },
+              {
+                "id": "s15",
+                "text": "これが玉霊膏。"
+              },
+              {
+                "id": "s16",
+                "text": "最後は丸い果物の中をくり抜いて、器代わりにする。"
+              },
+              {
+                "id": "s17",
+                "text": "白キクラゲ、クコの実、ナツメ、黄色い氷砂糖を入れる。"
+              },
+              {
+                "id": "s18",
+                "text": "作っておいた玉霊膏を加え、水を注ぐ。"
+              },
+              {
+                "id": "s19",
+                "text": "あとは、もう1時間蒸すだけ。"
+              },
+              {
+                "id": "s20",
+                "text": "黒いペーストが、果物の器で温かいデザートになった。"
+              }
+            ]
+          }
+          APPROVED_JSON
+          python3 - <<'PY'
+          import json, hashlib, os
+          from pathlib import Path
+          req=json.loads(Path("voice_batches/"+os.environ["STEM"]+".json").read_text())
+          lines=req['lines']
+          assert len(lines)==20
+          assert [x["id"] for x in lines] == [f"s{i:02d}" for i in range(1,21)]
+          assert req["profile"]["voice_name"]=="Puck"
+          assert req["profile"]["model"]=="gemini-3.8-flash-tts"
+          transcript="\n".join(x["text"] for x in lines)
+          sha=hashlib.sha256(transcript.encode("utf-8")).hexdigest()
+          print("Approved transcript SHA256:",sha)
+          assert sha=="05529a393f2fc88e19f11349b3ac7ae3a64063d09df0fad464359cd72ec5c549"
+          PY
+      - name: Generate 20 Gemini WAV at natural speech speed
+        shell: bash
+        timeout-minutes: 75
+        run: |
+          set -o pipefail
+          .venv/bin/python -u scripts/run_voice_batch.py "voice_batches/$STEM.json" 2>&1 | tee "voice_outputs/$STEM/run.log"
+      - name: Validate all 20 WAV and manifest
+        run: |
+          python3 - <<'PY'
+          import json,os,wave
+          from pathlib import Path
+          root=Path("voice_outputs")/os.environ["STEM"]
+          manifest=json.loads((root/"manifest.json").read_text())
+          failures=json.loads((root/"failed.json").read_text())
+          assert not failures, failures
+          assert len(manifest)==20, manifest
+          for i in range(1,21):
+            lid=f"s{i:02d}"
+            assert lid in manifest
+            with wave.open(str(root/(lid+".wav")),'rb') as f:
+              assert f.getnframes()>0 and f.getframerate()>=16000
+          print("QA all twenty WAV segments present",sum(manifest.values()),"seconds total")
+          PY
+      - name: Upload WAV segments artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-voice-batch-tic_yulinggao_20261122_08g_v1
+          path: voice_outputs/tic_yulinggao_20261122_08g_v1/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Publish clips to dedicated output branch for retrieval
+        if: always()
+        shell: bash
+        env:
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: |
+          set -euo pipefail
+          OUT="voice_outputs/$STEM"
+          test -d "$OUT" || exit 0
+          TMP="$(mktemp -d)"
+          cp -a "$OUT"/. "$TMP"/
+          cd "$TMP"
+          git init -q -b p
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -q -m "voices: $STEM [skip ci]"
+          git push -q -f "$PUSH_URL" "HEAD:refs/heads/voice-out/$STEM"
