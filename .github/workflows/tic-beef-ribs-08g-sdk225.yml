@@ -1,0 +1,57 @@
+name: TIC Beef Ribs 08G Puck SDK225 independent
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-beef-ribs-08g-sdk225.yml'
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install previously successful pinned Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Validate approved script request
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('voice_batches/tic_beef_ribs_20261122_4lines.json', encoding='utf-8'))
+          assert [x['text'] for x in r['lines']] == ['真っ赤なタレの骨付き牛肉。','焼いたパンに串焼きをのせる。','炭火のかまどで吊るし焼き。','最後は豪快に盛り付け。']
+          assert r['profile']['voice_name']=='Puck'
+          assert r['profile']['model']=='gemini-3.8-flash-tts'
+          PY
+      - name: Gemini TTS verbatim 4 separate WAVs
+        timeout-minutes: 15
+        shell: bash
+        run: python -u scripts/run_voice_batch.py voice_batches/tic_beef_ribs_20261122_4lines.json
+      - name: Upload WAV and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-beef-ribs-08g-puck-sdk225
+          path: voice_outputs/tic_beef_ribs_20261122_4lines/
+          if-no-files-found: warn
+          retention-days: 30
