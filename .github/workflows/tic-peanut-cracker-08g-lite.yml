@@ -1,0 +1,63 @@
+name: TIC Peanut Cracker 08G SDK225 Lite
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-peanut-cracker-08g-lite.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Gemini SDK
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install 'google-genai==2.25.0'
+      - name: Copy locked narration and switch only model
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=Path('voice_batches/tic_peanut_cracker_20261122_v1.json')
+          x=json.loads(a.read_text())
+          assert [z['text'] for z in x['lines']]==['中国のピーナッツ揚げせんべい！','米粉と小麦粉を水と塩で溶く','落花生を混ぜておたまで油へ！','こんがり揚げれば香ばしいおやつ！']
+          x['profile']['model']='gemini-3.8-flash-lite-tts'
+          Path('voice_batches/tic_peanut_cracker_20261122_lite.json').write_text(json.dumps(x,ensure_ascii=False))
+          PY
+      - name: Check secret
+        run: test -n "${GEMINI_API_KEY:-}"
+      - name: Generate the four approved lines
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p voice_outputs/tic_peanut_cracker_20261122_lite
+          .venv/bin/python -u scripts/run_voice_batch.py voice_batches/tic_peanut_cracker_20261122_lite.json 2>&1 | tee voice_outputs/tic_peanut_cracker_20261122_lite/workflow.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gemini-peanut-cracker-08g-lite-20261122
+          path: voice_outputs/tic_peanut_cracker_20261122_lite/
+          if-no-files-found: error
+          retention-days: 30
