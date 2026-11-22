@@ -1,0 +1,84 @@
+name: TIC Mohr Flower 08G SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-mohr-flower-08g-sdk225.yml'
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned successful Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Verify the eight exact approved lines
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p='voice_batches/tic_mohr_flower_20261122_8lines.json'
+          r=json.load(open(p,encoding='utf-8'))
+          expected=[
+          "このふさふさの花、実はモールで作られている。",
+          "まずオレンジ色のモールを細い芯に巻き付ける。",
+          "指で押さえながら端を折り返し、巻きを重ねていく。",
+          "根元をねじって固定すると、モールがほどけにくくなる。",
+          "ふさふさの部分を広げ、細長い穂の形に整える。",
+          "穂の根元に緑の葉を添え、位置がずれないように持つ。",
+          "茎に緑のテープを巻き付けて、葉と穂を固定していく。",
+          "最後に向きを整えれば、ふんわりした花束の完成。"
+          ]
+          assert [x['text'] for x in r['lines']]==expected
+          assert r['profile']['model']=='gemini-3.8-flash-tts'
+          assert r['profile']['voice_name']=='Puck'
+          PY
+      - name: Generate eight Gemini WAV segments
+        timeout-minutes: 24
+        shell: bash
+        run: python -u scripts/run_voice_batch.py voice_batches/tic_mohr_flower_20261122_8lines.json
+      - name: Verify complete WAV outputs
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,wave
+          from pathlib import Path
+          d=Path('voice_outputs/tic_mohr_flower_20261122_8lines')
+          m=json.loads((d/'manifest.json').read_text())
+          assert len(m)==8,m
+          for i in range(1,9):
+              p=d/f's{i:02d}.wav'
+              with wave.open(str(p),'rb') as w:
+                  assert w.getnframes()>0 and w.getframerate()>0
+          f=json.loads((d/'failed.json').read_text())
+          assert not f,f
+          print('all 8 WAVs verified')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-mohr-flower-08g-sdk225-8wav
+          path: voice_outputs/tic_mohr_flower_20261122_8lines/
+          if-no-files-found: warn
+          retention-days: 30
