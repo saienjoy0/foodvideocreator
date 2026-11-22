@@ -1,0 +1,67 @@
+name: TIC Peanut Cracker 08G SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-peanut-cracker-08g.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned SDK
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install 'google-genai==2.25.0'
+      - name: Check secret
+        run: test -n "${GEMINI_API_KEY:-}"
+      - name: Generate exact four approved voice lines
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p voice_outputs/tic_peanut_cracker_20261122_v1
+          .venv/bin/python -u scripts/run_voice_batch.py voice_batches/tic_peanut_cracker_20261122_v1.json 2>&1 | tee voice_outputs/tic_peanut_cracker_20261122_v1/workflow.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gemini-peanut-cracker-08g-20261122
+          path: voice_outputs/tic_peanut_cracker_20261122_v1/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Push WAV files to isolated result branch
+        if: always()
+        shell: bash
+        env:
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: |
+          OUT="voice_outputs/tic_peanut_cracker_20261122_v1"
+          test -d "$OUT"
+          cd "$OUT"
+          git init -q -b result
+          git config user.name github-actions-bot
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -q -m 'peanut cracker Gemini WAV artifacts'
+          git push -q -f "$PUSH_URL" HEAD:refs/heads/voice-out/tic_peanut_cracker_20261122_v1
