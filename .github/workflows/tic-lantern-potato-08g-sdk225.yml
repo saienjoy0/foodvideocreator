@@ -1,0 +1,84 @@
+name: TIC Lantern Potato 08G Puck SDK225
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-lantern-potato-08g-sdk225.yml'
+permissions:
+  contents: read
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: |
+        ${{ secrets.GEMINI_API_KEY }}
+        ${{ secrets.GEMINI_API_KEY_1 }}
+        ${{ secrets.GEMINI_API_KEY_2 }}
+        ${{ secrets.GEMINI_API_KEY_3 }}
+        ${{ secrets.GEMINI_API_KEY_4 }}
+        ${{ secrets.GEMINI_API_KEY_5 }}
+        ${{ secrets.GEMINI_API_KEY2 }}
+        ${{ secrets.GEMINI_API_KEY3 }}
+        ${{ secrets.GEMINI_API_KEY4 }}
+        ${{ secrets.GEMINI_API_KEY5 }}
+        ${{ secrets.GEMINI_API_KEY_SUB }}
+        ${{ secrets.GEMINI_API_KEY_BACKUP }}
+        ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned successful Gemini SDK
+        run: python -m pip install 'google-genai==2.25.0'
+      - name: Verify approved request
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('voice_batches/tic_lantern_potato_20261122_08g_v1.json',encoding='utf-8'))
+          expected=[
+            "ジャガイモが提灯に大変身！",
+            "半分にし、箸を敷き、切り落とさず切る。",
+            "塩水に20分。",
+            "水気を絞り、でんぷんをまぶす。",
+            "ソーセージを挟み、爪楊枝で固定。",
+            "形が崩れるので、揚げ始めは触らない。",
+            "両面きつね色に。",
+            "ケチャップと醤油、米酢、砂糖、水を煮詰める。",
+            "甘酢だれをかけて完成！",
+          ]
+          assert [x['text'] for x in r['lines']]==expected
+          assert r['profile']['voice_name']=='Puck'
+          assert r['profile']['model']=='gemini-3.8-flash-tts'
+          print('All nine exact approved lines verified')
+          PY
+      - name: Generate Gemini WAV
+        timeout-minutes: 44
+        shell: bash
+        run: python -u scripts/run_voice_batch.py voice_batches/tic_lantern_potato_20261122_08g_v1.json
+      - name: Verify WAV and manifest
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,wave
+          from pathlib import Path
+          d=Path('voice_outputs/tic_lantern_potato_20261122_08g_v1')
+          manifest=json.loads((d/'manifest.json').read_text())
+          failed=json.loads((d/'failed.json').read_text())
+          assert len(manifest)==9,manifest
+          assert not failed,failed
+          for i in range(1,10):
+              with wave.open(str(d/f'a{i:02d}.wav'),'rb') as w:
+                  assert w.getnframes()>0 and w.getframerate()>0
+          print('9 WAV outputs verified')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tic-lantern-potato-08g-puck-sdk225-9wav
+          path: voice_outputs/tic_lantern_potato_20261122_08g_v1/
+          if-no-files-found: warn
+          retention-days: 30
