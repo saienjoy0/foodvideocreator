@@ -84,3 +84,5 @@ jobs:
           path: voice_outputs/tic_sugar_threads_20261122_08g_altkeys/
           if-no-files-found: warn
           retention-days: 30
+
+# Retry approved sugar threads narration after user updated GitHub Gemini key (2026-11-28)
