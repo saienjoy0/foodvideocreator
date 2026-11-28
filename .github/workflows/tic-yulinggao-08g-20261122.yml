@@ -8,7 +8,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: tic-yulinggao-20261128-composite3-retry
+  group: tic-yulinggao-20261128-bundled3-retry
   cancel-in-progress: false
 jobs:
   voice:
@@ -19,6 +19,7 @@ jobs:
       # Three keys may be stored together in one GitHub Secret, not as three secrets.
       # Extract locally; do not print any credentials.
       COMBINED_GEMINI_KEYS: ${{ secrets.GEMINI_API_KEY }}
+      BUNDLED_GEMINI_KEYS: ${{ secrets.GEMINI_API_KEYS }}
       EXTRA_GEMINI_KEYS: |
         ${{ secrets.GEMINI_API_KEY_1 }}
         ${{ secrets.GEMINI_API_KEY_2 }}
@@ -39,12 +40,13 @@ jobs:
           python3 -m venv .venv
           .venv/bin/pip install -q 'google-genai==2.25.0'
           .venv/bin/python -c 'import importlib.metadata as m; assert m.version("google-genai") == "2.25.0"'
-      - name: Use second and third keys from combined secret; exclude exhausted first
+      - name: Resolve 3-key bundled secret and exclude exhausted primary
         shell: bash
         run: |
           python3 - <<'PY'
           import os, re, json, uuid
           combined=os.environ.get("COMBINED_GEMINI_KEYS","")
+          bundle=os.environ.get("BUNDLED_GEMINI_KEYS","")
           extras=os.environ.get("EXTRA_GEMINI_KEYS","")
           def split_keys(raw):
               # Works with adjacent, newline, literal \\n, CSV, semicolon, pipe or JSON.
@@ -58,21 +60,22 @@ jobs:
                   pass
               return [s.strip().strip("\"'") for s in re.split(r"[\s,;|]+|\\n", raw) if s.strip()]
           primary=list(dict.fromkeys(split_keys(combined)))
+          multi=list(dict.fromkeys(split_keys(bundle)))
           extra=list(dict.fromkeys(split_keys(extras)))
-          if len(primary)<2:
-              raise SystemExit("Expected multiple API keys in the one GitHub secret. Refusing to reuse the exhausted key. Add distinct keys to the secret; do not paste them into chat.")
-          # Key index 0 is the previously selected exhausted primary credential.
-          # Keep it entirely out of the provider API environment in this workflow.
-          keys=list(dict.fromkeys(primary[1:]+extra))
-          keys=[k for k in keys if k!=primary[0]]
+          # Old single GEMINI_API_KEY is exhausted. Never pass it to Gemini.
+          exhausted=primary[0] if primary else None
+          # Multiple keys may be stored in ONE secret GEMINI_API_KEYS (plural).
+          # Also support multiple keys in the singular secret after its first.
+          keys=list(dict.fromkeys(multi+primary[1:]+extra))
+          keys=[k for k in keys if k and k!=exhausted]
           if not keys:
-              raise SystemExit("No alternative key remains after excluding the first")
+              raise SystemExit("No alternate key in GEMINI_API_KEYS, GEMINI_API_KEY or numbered secrets. Refusing to use exhausted primary.")
           for key in keys:
               print("::add-mask::"+key)
           delimiter="TIC_GEMINI_KEYS_"+uuid.uuid4().hex
           with open(os.environ["GITHUB_ENV"],"a",encoding="utf-8") as out:
               out.write(f"GEMINI_API_KEYS<<{delimiter}\\n"+"\\n".join(keys)+f"\\n{delimiter}\\n")
-          print("Composite secret entries:",len(primary),"; excluded index 1; alternative entries:",len(keys))
+          print("Primary entries:",len(primary),"; bundled entries:",len(multi),"; excluded exhausted primary; usable alternate entries:",len(keys))
           PY
       - name: Prepare exact approved 20-line voice request
         run: |
