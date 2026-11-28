@@ -61,10 +61,10 @@ jobs:
               pieces=[secret]
             result=[]
             for piece in pieces:
-              for token in re.split(r"[,;\\s]+",piece):
-                token=token.strip(" \\t\\r\\n\\\"'")
+              for token in re.split(r"[,;\s]+",piece):
+                token=token.strip().strip('"').strip("'")
                 if "=" in token:
-                  token=token.split("=",1)[1].strip(" \\t\\r\\n\\\"'")
+                  token=token.split("=",1)[1].strip().strip('"').strip("'")
                 if token and token not in ("[","]","{","}"):
                   result.append(token)
             return result
