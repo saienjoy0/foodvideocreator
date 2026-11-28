@@ -44,7 +44,31 @@ jobs:
           out=pathlib.Path("voice_outputs/tic_sugar_threads_20261122_08g_altkeys")
           out.mkdir(parents=True,exist_ok=True)
           aliases=["KEY_PRIMARY","KEY_1","KEY_2","KEY_3","KEY_4","KEY_5","KEY_A2","KEY_A3","KEY_A4","KEY_A5","KEY_SUB","KEY_BACKUP","KEY_GOOGLE"]
-          keys=list({}.fromkeys((os.environ.get(k,"").strip() for k in aliases if os.environ.get(k,"").strip())))
+          import re
+          def split_secret(secret):
+            secret=secret.strip()
+            if not secret:
+              return []
+            try:
+              parsed=json.loads(secret)
+              if isinstance(parsed,list):
+                pieces=[str(x) for x in parsed]
+              elif isinstance(parsed,dict):
+                pieces=[str(x) for x in parsed.values()]
+              else:
+                pieces=[secret]
+            except (ValueError,TypeError):
+              pieces=[secret]
+            result=[]
+            for piece in pieces:
+              for token in re.split(r"[,;\\s]+",piece):
+                token=token.strip(" \\t\\r\\n\\\"'")
+                if "=" in token:
+                  token=token.split("=",1)[1].strip(" \\t\\r\\n\\\"'")
+                if token and token not in ("[","]","{","}"):
+                  result.append(token)
+            return result
+          keys=list(dict.fromkeys(k for alias in aliases for k in split_secret(os.environ.get(alias,""))))
           print("Unique configured keys:",len(keys),flush=True)
           if not keys:raise SystemExit("No configured Gemini key")
           manifest={"sdk":"google-genai==2.25.0","model":req["profile"]["model"],"voice":"Puck","script_sha256":hashlib.sha256("\n".join(approved).encode("utf-8")).hexdigest(),"segments":[]}
