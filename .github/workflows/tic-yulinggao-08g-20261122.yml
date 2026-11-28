@@ -1,9 +1,5 @@
 name: TIC Yulinggao 08G SDK225
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/tic-yulinggao-08g-20261122.yml'
   workflow_dispatch:
 permissions:
   contents: write
