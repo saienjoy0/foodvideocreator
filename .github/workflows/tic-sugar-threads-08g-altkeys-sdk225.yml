@@ -75,6 +75,12 @@ jobs:
                   result.append(token)
             return result
           keys=list(dict.fromkeys(k for alias in aliases for k in split_secret(os.environ.get(alias,""))))
+          # Only structural diagnostics; never emit secret contents or any prefix.
+          populated=[os.environ.get(alias,"") for alias in aliases if os.environ.get(alias,"").strip()]
+          lengths=[len(x.strip()) for x in populated]
+          size_classes=["single-key-sized" if n<=60 else "multi-key-sized" for n in lengths]
+          print("Configured Secret fields:",len(populated),"value size classes:",size_classes,flush=True)
+          print("Standard key markers in all Secret fields:",sum(x.count("AIza") for x in populated),flush=True)
           print("Unique configured keys:",len(keys),flush=True)
           if not keys:raise SystemExit("No configured Gemini key")
           manifest={"sdk":"google-genai==2.25.0","model":req["profile"]["model"],"voice":"Puck","script_sha256":hashlib.sha256("\n".join(approved).encode("utf-8")).hexdigest(),"segments":[]}
