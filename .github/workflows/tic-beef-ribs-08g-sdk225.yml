@@ -46,7 +46,7 @@ jobs:
       - name: Gemini TTS verbatim 4 separate WAVs
         timeout-minutes: 15
         shell: bash
-        run: python -u scripts/run_voice_batch.py voice_batches/tic_beef_ribs_20261122_4lines.json
+        run: python -u scripts/tic_beef_ribs_multikey.py
       - name: Upload WAV and manifest
         if: always()
         uses: actions/upload-artifact@v4
