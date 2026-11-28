@@ -49,6 +49,12 @@ jobs:
             secret=secret.strip()
             if not secret:
               return []
+            # Recognize standard AI Studio keys even if 3 are pasted back-to-back,
+            # separated by literal backslash-n, pipes, JSON, spaces, or newlines.
+            standard_keys=re.findall(r"AIza[A-Za-z0-9_-]{35}",secret)
+            if standard_keys:
+              return standard_keys
+            secret=secret.replace(chr(92)+"n",chr(10)).replace(chr(92)+"r",chr(10))
             try:
               parsed=json.loads(secret)
               if isinstance(parsed,list):
@@ -61,7 +67,7 @@ jobs:
               pieces=[secret]
             result=[]
             for piece in pieces:
-              for token in re.split(r"[,;\s]+",piece):
+              for token in re.split(r"[,;|\s]+",piece):
                 token=token.strip().strip('"').strip("'")
                 if "=" in token:
                   token=token.split("=",1)[1].strip().strip('"').strip("'")
