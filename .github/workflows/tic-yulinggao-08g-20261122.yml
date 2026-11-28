@@ -56,7 +56,7 @@ jobs:
                       return [str(k).strip() for k in parsed if str(k).strip()]
               except (json.JSONDecodeError,TypeError,ValueError):
                   pass
-              return [s.strip(" \\t\\r\\n\\"'") for s in re.split(r"[\\s,;|]+|\\\\n",raw) if s.strip(" \\t\\r\\n\\"'")]
+              return [s.strip().strip("\"'") for s in re.split(r"[\s,;|]+|\\n", raw) if s.strip()]
           primary=list(dict.fromkeys(split_keys(combined)))
           extra=list(dict.fromkeys(split_keys(extras)))
           if len(primary)<2:
