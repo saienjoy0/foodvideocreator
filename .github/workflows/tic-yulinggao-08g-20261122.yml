@@ -1,10 +1,14 @@
 name: TIC Yulinggao 08G SDK225
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tic-yulinggao-08g-20261122.yml'
   workflow_dispatch:
 permissions:
   contents: write
 concurrency:
-  group: tic-yulinggao-20261122-08g-only
+  group: tic-yulinggao-20261128-composite3-retry
   cancel-in-progress: false
 jobs:
   voice:
@@ -12,7 +16,10 @@ jobs:
     timeout-minutes: 90
     env:
       STEM: tic_yulinggao_20261122_08g_v1
-      GEMINI_API_KEYS: |
+      # Three keys may be stored together in one GitHub Secret, not as three secrets.
+      # Extract locally; do not print any credentials.
+      COMBINED_GEMINI_KEYS: ${{ secrets.GEMINI_API_KEY }}
+      EXTRA_GEMINI_KEYS: |
         ${{ secrets.GEMINI_API_KEY_1 }}
         ${{ secrets.GEMINI_API_KEY_2 }}
         ${{ secrets.GEMINI_API_KEY_3 }}
@@ -32,6 +39,41 @@ jobs:
           python3 -m venv .venv
           .venv/bin/pip install -q 'google-genai==2.25.0'
           .venv/bin/python -c 'import importlib.metadata as m; assert m.version("google-genai") == "2.25.0"'
+      - name: Use second and third keys from combined secret; exclude exhausted first
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, re, json, uuid
+          combined=os.environ.get("COMBINED_GEMINI_KEYS","")
+          extras=os.environ.get("EXTRA_GEMINI_KEYS","")
+          def split_keys(raw):
+              # Works with adjacent, newline, literal \\n, CSV, semicolon, pipe or JSON.
+              recognized=re.findall(r"AIza[0-9A-Za-z_-]{25,}", raw)
+              if recognized: return list(dict.fromkeys(recognized))
+              try:
+                  parsed=json.loads(raw)
+                  if isinstance(parsed,list):
+                      return [str(k).strip() for k in parsed if str(k).strip()]
+              except (json.JSONDecodeError,TypeError,ValueError):
+                  pass
+              return [s.strip(" \\t\\r\\n\\"'") for s in re.split(r"[\\s,;|]+|\\\\n",raw) if s.strip(" \\t\\r\\n\\"'")]
+          primary=list(dict.fromkeys(split_keys(combined)))
+          extra=list(dict.fromkeys(split_keys(extras)))
+          if len(primary)<2:
+              raise SystemExit("Expected multiple API keys in the one GitHub secret. Refusing to reuse the exhausted key. Add distinct keys to the secret; do not paste them into chat.")
+          # Key index 0 is the previously selected exhausted primary credential.
+          # Keep it entirely out of the provider API environment in this workflow.
+          keys=list(dict.fromkeys(primary[1:]+extra))
+          keys=[k for k in keys if k!=primary[0]]
+          if not keys:
+              raise SystemExit("No alternative key remains after excluding the first")
+          for key in keys:
+              print("::add-mask::"+key)
+          delimiter="TIC_GEMINI_KEYS_"+uuid.uuid4().hex
+          with open(os.environ["GITHUB_ENV"],"a",encoding="utf-8") as out:
+              out.write(f"GEMINI_API_KEYS<<{delimiter}\\n"+"\\n".join(keys)+f"\\n{delimiter}\\n")
+          print("Composite secret entries:",len(primary),"; excluded index 1; alternative entries:",len(keys))
+          PY
       - name: Prepare exact approved 20-line voice request
         run: |
           mkdir -p voice_batches "voice_outputs/$STEM"
